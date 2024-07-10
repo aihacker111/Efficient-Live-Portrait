@@ -9,15 +9,15 @@ import cv2
 import numpy as np
 import pickle
 from rich.progress import track
-from .utils.cropper import Cropper
+from Face2Vid.utils.cropper import Cropper
 
-from .utils.io import load_driving_info
-from .utils.camera import get_rotation_matrix
-from .utils.helper import mkdir, basename
-from .utils.rprint import rlog as log
-from .config.crop_config import CropConfig
-from .config.inference_config import InferenceConfig
-from .live_portrait_wrapper import LivePortraitWrapper
+from Face2Vid.utils.io import load_driving_info
+from Face2Vid.utils.camera import get_rotation_matrix
+from Face2Vid.utils.helper import mkdir, basename
+from Face2Vid.utils.rprint import rlog as log
+from Face2Vid.commons.config.crop_config import CropConfig
+from Face2Vid.commons.config.inference_config import InferenceConfig
+from Face2Vid.commons.live_portrait_wrapper import LivePortraitWrapper
 
 class TemplateMaker:
 

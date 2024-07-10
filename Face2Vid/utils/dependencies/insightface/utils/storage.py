@@ -26,7 +26,7 @@ def download(sub_dir, name, force=False, root='~/.insightface'):
 
 
 def ensure_available(sub_dir, name, root='~/.insightface'):
-    return download(sub_dir, name, force=True, root=root)
+    return download(sub_dir, name, force=False, root=root)
 
 
 def download_onnx(sub_dir, model_file, force=False, root='~/.insightface', download_zip=False):

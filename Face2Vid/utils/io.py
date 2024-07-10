@@ -5,7 +5,10 @@ from glob import glob
 import os.path as osp
 import imageio
 import numpy as np
-import cv2; cv2.setNumThreads(0); cv2.ocl.setUseOpenCL(False)
+import cv2
+
+cv2.setNumThreads(0)
+cv2.ocl.setUseOpenCL(False)
 
 
 def load_image_rgb(image_path: str):

@@ -10,12 +10,12 @@ import cv2
 import torch
 import yaml
 
-from .utils.timer import Timer
-from .utils.helper import load_model, concat_feat
-from .utils.camera import headpose_pred_to_degree, get_rotation_matrix
-from .utils.retargeting_utils import calc_eye_close_ratio, calc_lip_close_ratio
-from .config.inference_config import InferenceConfig
-from .utils.rprint import rlog as log
+from Face2Vid.utils.timer import Timer
+from Face2Vid.utils.helper import load_model, concat_feat
+from Face2Vid.utils.camera import headpose_pred_to_degree, get_rotation_matrix
+from Face2Vid.utils.retargeting_utils import calc_eye_close_ratio, calc_lip_close_ratio
+from Face2Vid.commons.config.inference_config import InferenceConfig
+from Face2Vid.utils.rprint import rlog as log
 
 
 class LivePortraitWrapper(object):

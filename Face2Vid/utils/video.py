@@ -45,6 +45,7 @@ def images2video(images, wfp, **kwargs):
 
     # print(f':smiley: Dump to {wfp}\n', style="bold green")
     print(f'Dump to {wfp}\n')
+    return wfp
 
 
 def video2gif(video_fp, fps=30, size=256):
