@@ -11,12 +11,15 @@ def main(cam=False):
     # set tyro theme
     tyro.extras.set_accent_color("bright_cyan")
 
-    args = tyro.cli(ArgumentConfig)
+    # args = tyro.cli(ArgumentConfig)
 
-    inference_cfg = partial_fields(InferenceConfig, args.__dict__)
+    # inference_cfg = partial_fields(InferenceConfig, args.__dict__)
+    inference_cfg = InferenceConfig()
     live_portrait_pipeline = LivePortraitPipeline(inference_cfg=inference_cfg)
-    s = args.source_image
-    d = args.driving_info
+    # s = args.source_image
+    # d = args.driving_info
+    s = '/content/368220873_826368889022136_4472311944594836999_n.jpg'
+    d = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/assets/examples/driving/d1.mp4'
     if cam:
         cap = cv2.VideoCapture(0)
         while True:
@@ -24,7 +27,7 @@ def main(cam=False):
             if not ret:
                 break
 
-            portrait, img_rgb = live_portrait_pipeline.render(source_image=s, source_motion=frame)
+            portrait, img_rgb = live_portrait_pipeline.render(source_image=s, source_motion=frame, cam=cam)
             portrait_rgb = cv2.cvtColor(portrait, cv2.COLOR_RGB2BGR)
             cv2.imshow('img_rgb Image', img_rgb)
             cv2.imshow('Source Frame', frame)
@@ -38,10 +41,8 @@ def main(cam=False):
         cap.release()
         cv2.destroyAllWindows()
     else:
-        # d = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/assets/examples/driving/d1.mp4'
-        # s = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/assets/examples/source/s0.jpg'
-        live_portrait_pipeline.render(source_image=s, source_motion=d, cam=cam)
+        live_portrait_pipeline.render(source_image=s, source_motion=d)
 
 
 if __name__ == '__main__':
-    main(cam=False)
+    main(cam=True)
