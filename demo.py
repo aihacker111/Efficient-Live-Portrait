@@ -15,9 +15,10 @@ def main(cam=False):
 
     inference_cfg = partial_fields(InferenceConfig, args.__dict__)
     live_portrait_pipeline = LivePortraitPipeline(inference_cfg=inference_cfg)
+    s = args.source_image
+    d = args.driving_info
     if cam:
         cap = cv2.VideoCapture(0)
-        s = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/assets/examples/source/s0.jpg'
         while True:
             ret, frame = cap.read()
             if not ret:
@@ -37,8 +38,8 @@ def main(cam=False):
         cap.release()
         cv2.destroyAllWindows()
     else:
-        d = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/assets/examples/driving/d1.mp4'
-        s = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/assets/examples/source/s0.jpg'
+        # d = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/assets/examples/driving/d1.mp4'
+        # s = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/assets/examples/source/s0.jpg'
         live_portrait_pipeline.render(source_image=s, source_motion=d, cam=cam)
 
 
