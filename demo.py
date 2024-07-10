@@ -18,7 +18,7 @@ def main(cam=False):
     live_portrait_pipeline = LivePortraitPipeline(inference_cfg=inference_cfg)
     # s = args.source_image
     # d = args.driving_info
-    s = '/content/368220873_826368889022136_4472311944594836999_n.jpg'
+    s = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/assets/examples/source/s0.jpg'
     d = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/assets/examples/driving/d1.mp4'
     if cam:
         cap = cv2.VideoCapture(0)
@@ -45,4 +45,4 @@ def main(cam=False):
 
 
 if __name__ == '__main__':
-    main(cam=True)
+    main(cam=False)
