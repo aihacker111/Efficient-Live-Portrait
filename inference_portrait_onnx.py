@@ -275,16 +275,16 @@ class LivePortraitONNX(ParsingPaste):
 
 
 if __name__ == '__main__':
-    video_path = 'assets/examples/driving/d2.mp4'
+    video_path = 'assets/examples/driving/d3.mp4'
     source_img = 'assets/examples/source/s3.jpg'
     live_portrait = LivePortraitONNX(cfg=InferenceConfig(),
-                                     motion_extractor_path='live_portraiet_onnx/onnx/motion_extractor.onnx',
-                                     appearance_feature_extractor_path='live_portraiet_onnx/onnx/appearance_feature_extractor.onnx',
-                                     warping_path='live_portraiet_onnx/onnx/warping.onnx',
-                                     spade_path='live_portraiet_onnx/onnx/spade_generator.onnx',
-                                     stitch_path='live_portraiet_onnx/onnx/stitching_retargeting.onnx',
-                                     lip_path='live_portraiet_onnx/onnx/stitching_retargeting_lip.onnx',
-                                     eye_path='live_portraiet_onnx/onnx/stitching_retargeting_eye.onnx')
+                                     motion_extractor_path='live_portrait_onnx/onnx/motion_extractor.onnx',
+                                     appearance_feature_extractor_path='live_portrait_onnx/onnx/appearance_feature_extractor.onnx',
+                                     warping_path='live_portrait_onnx/onnx/warping.onnx',
+                                     spade_path='live_portrait_onnx/onnx/spade_generator.onnx',
+                                     stitch_path='live_portrait_onnx/onnx/stitching_retargeting.onnx',
+                                     lip_path='live_portrait_onnx/onnx/stitching_retargeting_lip.onnx',
+                                     eye_path='live_portrait_onnx/onnx/stitching_retargeting_eye.onnx')
 
     # cap = cv2.VideoCapture(0)
     source_landmark, x_c_ss, x_ss, f_ss, r_ss, \

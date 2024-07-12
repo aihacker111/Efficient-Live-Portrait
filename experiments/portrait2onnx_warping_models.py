@@ -1,7 +1,9 @@
-import torch
+import os
+os.system("pip install torch==1.13.0")
 from Face2Vid.utils.helper import load_model
 from Face2Vid.commons.config.inference_config import InferenceConfig
 from Face2Vid.utils.rprint import rlog as log
+import torch
 import yaml
 
 
@@ -36,6 +38,7 @@ torch.onnx.export(
     output_names=['output'],
     dynamic_axes={'feature_3d': {0: 'batch_size'}, 'kp_source': {0: 'batch_size'}, 'kp_driving': {0: 'batch_size'}, 'output': {0: 'batch_size'}}
 )
+os.system("pip install -U torch")
 
 # import onnxruntime as ort
 # import torch
