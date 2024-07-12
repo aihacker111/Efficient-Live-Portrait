@@ -71,21 +71,12 @@ class InferenceConfig(PrintableConfig):
     checkpoint_S: str = model_paths['live_portrait']['checkpoint_S']  # path to checkpoint
 
     flag_use_half_precision: bool = True  # whether to use half precision
-
     flag_lip_zero: bool = True  # whether let the lip to close state before animation, only take effect when flag_eye_retargeting and flag_lip_retargeting is False
     lip_zero_threshold: float = 0.03
-
     flag_eye_retargeting: bool = False
     flag_lip_retargeting: bool = False
     flag_stitching: bool = True  # we recommend setting it to True!
-
     flag_relative: bool = True  # whether to use relative motion
-
-    # flag_lip_zero : bool = True # whether let the lip to close state before animation, only take effect when flag_eye_retargeting and flag_lip_retargeting is False
-    # flag_eye_retargeting: bool = False
-    # flag_lip_retargeting: bool = False
-    # flag_stitching: bool = True  # we recommend setting it to True!
-    # flag_relative: bool = True  # whether to use relative motion
     flag_pasteback: bool = True  # whether to paste-back/stitch the animated face cropping from the face-cropping space to the original image space
     flag_do_crop: bool = True  # whether to crop the source portrait to the face-cropping space
     flag_do_rot: bool = True  # whether to conduct the rotation when flag_do_crop is True

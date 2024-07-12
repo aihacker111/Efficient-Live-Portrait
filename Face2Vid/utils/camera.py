@@ -22,7 +22,6 @@ def headpose_pred_to_degree(pred):
         idx_tensor = torch.FloatTensor(idx_tensor).to(device)
         pred = F.softmax(pred, dim=1)
         degree = torch.sum(pred*idx_tensor, axis=1) * 3 - 97.5
-
         return degree
 
     return pred

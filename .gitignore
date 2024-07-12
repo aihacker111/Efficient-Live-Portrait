@@ -1,7 +1,11 @@
 __pycache__
 .idea
 face2vid_weights
+live_portrait_onnx
 animations
 *.pyc
 debug
 .DS_Store
+code_test.py
+output_video.mp4
+push_model_hf.py

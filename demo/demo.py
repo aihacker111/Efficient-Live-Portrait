@@ -1,6 +1,6 @@
 import cv2
 import tyro
-from Face2Vid import ArgumentConfig, InferenceConfig, LivePortraitPipeline
+from Face2Vid import InferenceConfig, LivePortraitPipeline
 
 
 def partial_fields(target_class, kwargs):
@@ -11,15 +11,13 @@ def main(cam=False):
     # set tyro theme
     tyro.extras.set_accent_color("bright_cyan")
 
-    # args = tyro.cli(ArgumentConfig)
 
-    # inference_cfg = partial_fields(InferenceConfig, args.__dict__)
     inference_cfg = InferenceConfig()
     live_portrait_pipeline = LivePortraitPipeline(inference_cfg=inference_cfg)
     # s = args.source_image
     # d = args.driving_info
-    s = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/assets/examples/source/s0.jpg'
-    d = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/assets/examples/driving/d1.mp4'
+    s = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/assets/examples/source/s3.jpg'
+    d = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/assets/examples/driving/d3.mp4'
     if cam:
         cap = cv2.VideoCapture(0)
         while True:

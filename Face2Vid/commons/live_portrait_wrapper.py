@@ -25,7 +25,8 @@ class LivePortraitWrapper(object):
         model_config = yaml.load(open(cfg.models_config, 'r'), Loader=yaml.SafeLoader)
 
         # init F
-        self.appearance_feature_extractor = load_model(cfg.checkpoint_F, model_config, cfg.device, 'appearance_feature_extractor')
+        self.appearance_feature_extractor = load_model(cfg.checkpoint_F, model_config, cfg.device,
+                                                       'appearance_feature_extractor')
         log(f'Load appearance_feature_extractor done.')
         # init M
         self.motion_extractor = load_model(cfg.checkpoint_M, model_config, cfg.device, 'motion_extractor')
@@ -38,7 +39,8 @@ class LivePortraitWrapper(object):
         log(f'Load spade_generator done.')
         # init S and R
         if cfg.checkpoint_S is not None and osp.exists(cfg.checkpoint_S):
-            self.stitching_retargeting_module = load_model(cfg.checkpoint_S, model_config, cfg.device, 'stitching_retargeting_module')
+            self.stitching_retargeting_module = load_model(cfg.checkpoint_S, model_config, cfg.device,
+                                                           'stitching_retargeting_module')
             log(f'Load stitching_retargeting_module done.')
         else:
             self.stitching_retargeting_module = None
@@ -83,12 +85,13 @@ class LivePortraitWrapper(object):
             _imgs = imgs
         else:
             raise ValueError(f'imgs type error: {type(imgs)}')
-
+        # print('y0', _imgs.shape)
         y = _imgs.astype(np.float32) / 255.
         y = np.clip(y, 0, 1)  # clip to 0~1
+        # print('y', y.shape)
         y = torch.from_numpy(y).permute(0, 4, 3, 1, 2)  # TxHxWx3x1 -> Tx1x3xHxW
         y = y.to(self.device)
-
+        # print('y1', y.shape)
         return y
 
     def extract_feature_3d(self, x: torch.Tensor) -> torch.Tensor:
@@ -98,7 +101,6 @@ class LivePortraitWrapper(object):
         with torch.no_grad():
             with torch.autocast(device_type='cuda', dtype=torch.float16, enabled=self.cfg.flag_use_half_precision):
                 feature_3d = self.appearance_feature_extractor(x)
-
         return feature_3d.float()
 
     def get_kp_info(self, x: torch.Tensor, **kwargs) -> dict:
@@ -110,6 +112,7 @@ class LivePortraitWrapper(object):
         with torch.no_grad():
             with torch.autocast(device_type='cuda', dtype=torch.float16, enabled=self.cfg.flag_use_half_precision):
                 kp_info = self.motion_extractor(x)
+                # print('motion', kp_info)
 
             if self.cfg.flag_use_half_precision:
                 # float the dict
@@ -125,7 +128,6 @@ class LivePortraitWrapper(object):
             kp_info['roll'] = headpose_pred_to_degree(kp_info['roll'])[:, None]  # Bx1
             kp_info['kp'] = kp_info['kp'].reshape(bs, -1, 3)  # BxNx3
             kp_info['exp'] = kp_info['exp'].reshape(bs, -1, 3)  # BxNx3
-
         return kp_info
 
     def get_pose_dct(self, kp_info: dict) -> dict:
@@ -160,7 +162,7 @@ class LivePortraitWrapper(object):
         transform the implicit keypoints with the pose, shift, and expression deformation
         kp: BxNx3
         """
-        kp = kp_info['kp']    # (bs, k, 3)
+        kp = kp_info['kp']  # (bs, k, 3)
         pitch, yaw, roll = kp_info['pitch'], kp_info['yaw'], kp_info['roll']
 
         t, exp = kp_info['t'], kp_info['exp']
@@ -176,7 +178,7 @@ class LivePortraitWrapper(object):
         else:
             num_kp = kp.shape[1]  # Bxnum_kpx3
 
-        rot_mat = get_rotation_matrix(pitch, yaw, roll)    # (bs, 3, 3)
+        rot_mat = get_rotation_matrix(pitch, yaw, roll)  # (bs, 3, 3)
 
         # Eqn.2: s * (R * x_c,s + exp) + t
         kp_transformed = kp.view(bs, num_kp, 3) @ rot_mat + exp.view(bs, num_kp, 3)
@@ -186,6 +188,7 @@ class LivePortraitWrapper(object):
         return kp_transformed
 
     def retarget_eye(self, kp_source: torch.Tensor, eye_close_ratio: torch.Tensor) -> torch.Tensor:
+        print('eye', eye_close_ratio)
         """
         kp_source: BxNx3
         eye_close_ratio: Bx3
@@ -199,6 +202,7 @@ class LivePortraitWrapper(object):
         return delta
 
     def retarget_lip(self, kp_source: torch.Tensor, lip_close_ratio: torch.Tensor) -> torch.Tensor:
+        print('lip', lip_close_ratio.shape)
         """
         kp_source: BxNx3
         lip_close_ratio: Bx2
@@ -230,14 +234,13 @@ class LivePortraitWrapper(object):
         """
 
         if self.stitching_retargeting_module is not None:
-
             bs, num_kp = kp_source.shape[:2]
 
             kp_driving_new = kp_driving.clone()
             delta = self.stitch(kp_source, kp_driving_new)
 
-            delta_exp = delta[..., :3*num_kp].reshape(bs, num_kp, 3)  # 1x20x3
-            delta_tx_ty = delta[..., 3*num_kp:3*num_kp+2].reshape(bs, 1, 2)  # 1x1x2
+            delta_exp = delta[..., :3 * num_kp].reshape(bs, num_kp, 3)  # 1x20x3
+            delta_tx_ty = delta[..., 3 * num_kp:3 * num_kp + 2].reshape(bs, 1, 2)  # 1x1x2
 
             kp_driving_new += delta_exp
             kp_driving_new[..., :2] += delta_tx_ty
@@ -257,6 +260,7 @@ class LivePortraitWrapper(object):
             with torch.autocast(device_type='cuda', dtype=torch.float16, enabled=self.cfg.flag_use_half_precision):
                 # get decoder input
                 ret_dct = self.warping_module(feature_3d, kp_source=kp_source, kp_driving=kp_driving)
+                print('warp', ret_dct.keys())
                 # decode
                 ret_dct['out'] = self.spade_generator(feature=ret_dct['out'])
 

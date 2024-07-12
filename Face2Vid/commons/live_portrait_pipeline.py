@@ -124,13 +124,12 @@ class LivePortraitPipeline:
             elif inference_cfg.flag_stitching and not inference_cfg.flag_eye_retargeting and not inference_cfg.flag_lip_retargeting:
                 # with stitching and without retargeting
                 if inference_cfg.flag_lip_zero:
-                    x_d_i_new = self.live_portrait_wrapper.stitching(x_s,
-                                                                     x_d_i_new) + lip_delta_before_animation.reshape(-1,
-                                                                                                                     x_s.shape[
-                                                                                                                         1],
-                                                                                                                     3)
+                    x_d_i_new = self.live_portrait_wrapper.stitching(x_s,x_d_i_new) + lip_delta_before_animation.reshape(-1,x_s.shape[1],3)
+
                 else:
                     x_d_i_new = self.live_portrait_wrapper.stitching(x_s, x_d_i_new)
+                    # print('stich', x_d_i_new)
+
             else:
                 eyes_delta, lip_delta = None, None
                 if inference_cfg.flag_eye_retargeting:
@@ -187,6 +186,7 @@ class LivePortraitPipeline:
         r_s = get_rotation_matrix(x_s_info['pitch'], x_s_info['yaw'], x_s_info['roll'])
         f_s = self.live_portrait_wrapper.extract_feature_3d(i_s)
         x_s = self.live_portrait_wrapper.transform_keypoint(x_s_info)
+        # print('aaa',x_s)
 
         lip_delta_before_animation = None
         if inference_cfg.flag_lip_zero:
@@ -247,7 +247,8 @@ class LivePortraitPipeline:
             x_d_i_new = scale_new * (x_s @ r_new + delta_new) + t_new
             if inference_cfg.flag_lip_zero and lip_delta_before_animation is not None:
                 x_d_i_new += lip_delta_before_animation.reshape(-1, x_s.shape[1], 3)
-
+            # print(x_s.shape)
+            # print(x_d_i_new.shape)
             out = self.live_portrait_wrapper.warp_decode(f_s, x_s, x_d_i_new)
             i_p_i = self.live_portrait_wrapper.parse_output(out['out'])[0]
 
