@@ -10,6 +10,7 @@ from LivePortrait.commons import PortraitController, Config
 class LivePortraitONNX(PortraitController):
     def __init__(self, cfg=Config):
         super().__init__(cfg)
+        self.providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
         self.cfg = cfg
         self.cropper = Cropper(crop_cfg=self.cfg)
         self._model_sessions = None
@@ -21,14 +22,14 @@ class LivePortraitONNX(PortraitController):
         return self._model_sessions
 
     def _initialize_sessions(self):
-        m_session = ort.InferenceSession(self.cfg.checkpoint_M)
-        f_session = ort.InferenceSession(self.cfg.checkpoint_F)
-        w_session = ort.InferenceSession(self.cfg.checkpoint_W)
-        g_session = ort.InferenceSession(self.cfg.checkpoint_G)
+        m_session = ort.InferenceSession(self.cfg.checkpoint_M, providers=self.providers)
+        f_session = ort.InferenceSession(self.cfg.checkpoint_F, providers=self.providers)
+        w_session = ort.InferenceSession(self.cfg.checkpoint_W, providers=self.providers)
+        g_session = ort.InferenceSession(self.cfg.checkpoint_G, providers=self.providers)
 
-        s_session = ort.InferenceSession(self.cfg.checkpoint_S)
-        s_l_session = ort.InferenceSession(self.cfg.checkpoint_SL)
-        s_e_session = ort.InferenceSession(self.cfg.checkpoint_SE)
+        s_session = ort.InferenceSession(self.cfg.checkpoint_S, providers=self.providers)
+        s_l_session = ort.InferenceSession(self.cfg.checkpoint_SL, providers=self.providers)
+        s_e_session = ort.InferenceSession(self.cfg.checkpoint_SE, providers=self.providers)
 
         m_input_name = m_session.get_inputs()[0].name
         m_output_name = m_session.get_outputs()[0].name

@@ -62,7 +62,9 @@ def get_live_portrait_onnx():
 
 @dataclass(repr=False)  # use repr from PrintableConfig
 class Config(PrintableConfig):
+
     model_paths, dir_path = get_live_portrait_onnx()
+
     checkpoint_F: str = model_paths['live_portrait']['checkpoint_F']  # path to checkpoint
     checkpoint_M: str = model_paths['live_portrait']['checkpoint_M']  # path to checkpoint
     checkpoint_G: str = model_paths['live_portrait']['checkpoint_G']  # path to checkpoint
@@ -70,6 +72,7 @@ class Config(PrintableConfig):
     checkpoint_S: str = model_paths['live_portrait']['checkpoint_S']  # path to checkpoint
     checkpoint_SE: str = model_paths['live_portrait']['checkpoint_SE']
     checkpoint_SL: str = model_paths['live_portrait']['checkpoint_SL']
+
     flag_use_half_precision: bool = True  # whether to use half precision
     flag_lip_zero: bool = True  # whether let the lip to close state before animation, only take effect when flag_eye_retargeting and flag_lip_retargeting is False
     lip_zero_threshold: float = 0.03
@@ -80,6 +83,8 @@ class Config(PrintableConfig):
     flag_pasteback: bool = True  # whether to paste-back/stitch the animated face cropping from the face-cropping space to the original image space
     flag_do_crop: bool = True  # whether to crop the source portrait to the face-cropping space
     flag_do_rot: bool = True  # whether to conduct the rotation when flag_do_crop is True
+    flag_write_result: bool = True  # whether to write output video
+    flag_write_gif: bool = False
 
     anchor_frame: int = 0  # set this value if find_best_frame is True
 
@@ -87,18 +92,13 @@ class Config(PrintableConfig):
     output_format: Literal['mp4', 'gif'] = 'mp4'  # output video format
     output_fps: int = 30  # fps for output video
     crf: int = 15  # crf for output video
-
-    flag_write_result: bool = True  # whether to write output video
     mask_crop = None
-    flag_write_gif: bool = False
     size_gif: int = 256
     ref_max_shape: int = 1280
     ref_shape_n: int = 2
 
     device: str = 'cuda' if torch.cuda.is_available() else 'cpu'
-    device_id: int = 0
-    flag_do_crop: bool = True  # whether to crop the source portrait to the face-cropping space
-    flag_do_rot: bool = True  # whether to conduct the rotation when flag_do_crop is True
+
     # crop config
     ckpt_landmark: str = model_paths['landmarks']['landmark']
     ckpt_face: str = dir_path
