@@ -4,6 +4,8 @@
 This repo is the optimize task by converted to ONNX models for [LivePortrait: Efficient Portrait Animation with Stitching and Retargeting Control](https://github.com/KwaiVGI/LivePortrait).
 We are actively updating and improving this repository. If you find any bugs or have suggestions, welcome to raise issues or submit pull requests (PR) 💖.
 
+Also we adding feature: Real-Time demo with ONNX models
+
 ## 🔥 Getting Started
 ### 1. Clone the code and prepare the environment
 ```bash
