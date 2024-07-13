@@ -1,6 +1,6 @@
 import argparse
 import warnings
-from LivePortrait.fast_live_portrait_pipeline import LivePortraitONNX
+from LivePortrait import LivePortraitONNX
 
 warnings.filterwarnings("ignore")
 

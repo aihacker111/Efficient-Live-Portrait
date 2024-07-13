@@ -3,12 +3,12 @@ import onnxruntime as ort
 import numpy as np
 import os.path as osp
 from tqdm import tqdm
-from LivePortrait.utils.io import load_image_rgb, resize_to_limit
-from LivePortrait.utils.cropper import Cropper
-from LivePortrait.utils.video import images2video
-from LivePortrait.utils.helper import basename
-from LivePortrait.commons.config import Config
-from LivePortrait.commons.portrait import PortraitController
+from LivePortrait.utils import load_image_rgb, resize_to_limit
+from LivePortrait.utils import Cropper
+from LivePortrait.utils import images2video
+from LivePortrait.utils import basename
+from LivePortrait.commons import Config
+from LivePortrait.commons import PortraitController
 
 
 class LivePortraitONNX(PortraitController):
