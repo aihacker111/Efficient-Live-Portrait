@@ -1,6 +1,6 @@
 __pycache__
 .idea
-face2vid_weights
+live_portrait_onnx_weights
 live_portrait_onnx
 animations
 *.pyc
