@@ -1,5 +1,9 @@
 # Efficient-Live-Portrait
+## 📹 Video Demo
+ 
 
+https://github.com/user-attachments/assets/ac0e92d7-34e1-4402-a202-d06a2e806abe
+     
 ## Introduction
 This repo is the optimize task by converted to ONNX models for [LivePortrait: Efficient Portrait Animation with Stitching and Retargeting Control](https://github.com/KwaiVGI/LivePortrait).
 We are actively updating and improving this repository. If you find any bugs or have suggestions, welcome to raise issues or submit pull requests (PR) 💖.
