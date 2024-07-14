@@ -2,7 +2,6 @@
 torch==2.3.0
 torchvision==0.18.0
 torchaudio==2.3.0
-
 numpy==1.26.4
 pyyaml==6.0.1
 opencv-python==4.10.0.84

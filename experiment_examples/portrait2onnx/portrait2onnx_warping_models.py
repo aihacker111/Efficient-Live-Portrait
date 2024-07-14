@@ -40,32 +40,32 @@ torch.onnx.export(
 )
 
 
-# import onnxruntime as ort
-# import torch
-#
-# ort_session = ort.InferenceSession('live_portraiet_onnx/warping_module.onnx')
-#
-#
-# def to_numpy(tensor):
-#     return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
-#
-#
-# feature_3d = torch.randn(1, 32, 16, 64, 64)  # Example shape, adjust as necessary
-# kp_source = torch.randn(1, 21, 3)  # Example shape, adjust as necessary
-# kp_driving = torch.randn(1, 21, 3)  # Example shape, adjust as necessary
-# # Prepare inputs for ONNX runtime
-# ort_inputs = {
-#     'feature_3d': to_numpy(feature_3d),
-#     'kp_source': to_numpy(kp_source),
-#     'kp_driving': to_numpy(kp_driving)
-# }
-#
-# # Run inference
-# ort_outs = ort_session.run(None, ort_inputs)
-#
-# # Process the output as necessary
-# output = ort_outs[0]
-# print("Inference output:", output)
+import onnxruntime as ort
+import torch
+
+ort_session = ort.InferenceSession('live_portraiet_onnx/warping_module.onnx')
+
+
+def to_numpy(tensor):
+    return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
+
+
+feature_3d = torch.randn(1, 32, 16, 64, 64)  # Example shape, adjust as necessary
+kp_source = torch.randn(1, 21, 3)  # Example shape, adjust as necessary
+kp_driving = torch.randn(1, 21, 3)  # Example shape, adjust as necessary
+# Prepare inputs for ONNX runtime
+ort_inputs = {
+    'feature_3d': to_numpy(feature_3d),
+    'kp_source': to_numpy(kp_source),
+    'kp_driving': to_numpy(kp_driving)
+}
+
+# Run inference
+ort_outs = ort_session.run(None, ort_inputs)
+
+# Process the output as necessary
+output = ort_outs[0]
+print("Inference output:", output)
 
 # import torch
 # torch.onnx.export
