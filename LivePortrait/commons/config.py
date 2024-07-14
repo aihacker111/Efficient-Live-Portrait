@@ -18,7 +18,7 @@ MODEL_URLS = {
         'checkpoint_SL': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/stitching_retargeting_lip.onnx?download=true'
     },
     'landmarks': {
-        'landmark': 'https://huggingface.co/myn0908/Live-Portrait-Models/resolve/main/landmark.onnx?download=true'
+        'landmark': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/landmark.onnx?download=true'
     }
 
 }
