@@ -1,7 +1,7 @@
 from onnxruntime.transformers.onnx_model import OnnxModel
 import onnx
 
-path = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/Live-Portrait-ONNX/spade_generator.onnx'
+path = '/animations/Live-Portrait-ONNX/spade_generator.onnx'
 model = onnx.load(path)
 onnx_model = OnnxModel(model)
 count = len(model.graph.initializer)
