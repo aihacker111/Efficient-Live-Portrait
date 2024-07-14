@@ -38,7 +38,7 @@ torch.onnx.export(
     output_names=['output'],
     dynamic_axes={'feature_3d': {0: 'batch_size'}, 'kp_source': {0: 'batch_size'}, 'kp_driving': {0: 'batch_size'}, 'output': {0: 'batch_size'}}
 )
-os.system("pip install -U torch")
+
 
 # import onnxruntime as ort
 # import torch
@@ -66,3 +66,6 @@ os.system("pip install -U torch")
 # # Process the output as necessary
 # output = ort_outs[0]
 # print("Inference output:", output)
+
+# import torch
+# torch.onnx.export

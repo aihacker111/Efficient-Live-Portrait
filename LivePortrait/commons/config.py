@@ -9,13 +9,13 @@ from .base_config import PrintableConfig
 # Define the URLs for the model files
 MODEL_URLS = {
     'live_portrait': {
-        'checkpoint_F': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/onnx/appearance_feature_extractor.onnx?download=true',
-        'checkpoint_M': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/onnx/motion_extractor.onnx?download=true',
-        'checkpoint_G': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/onnx/spade_generator.onnx?download=true',
-        'checkpoint_W': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/onnx/warping.onnx?download=true',
-        'checkpoint_S': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/onnx/stitching_retargeting.onnx?download=true',
-        'checkpoint_SE': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/onnx/stitching_retargeting_eye.onnx?download=true',
-        'checkpoint_SL': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/onnx/stitching_retargeting_lip.onnx?download=true'
+        'checkpoint_F': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/appearance_feature_extractor.onnx?download=true',
+        'checkpoint_M': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/motion_extractor.onnx?download=true',
+        'checkpoint_G': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/spade_generator.onnx?download=true',
+        'checkpoint_W': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/warping.onnx?download=true',
+        'checkpoint_S': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/stitching_retargeting.onnx?download=true',
+        'checkpoint_SE': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/stitching_retargeting_eye.onnx?download=true',
+        'checkpoint_SL': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/stitching_retargeting_lip.onnx?download=true'
     },
     'landmarks': {
         'landmark': 'https://huggingface.co/myn0908/Live-Portrait-Models/resolve/main/landmark.onnx?download=true'

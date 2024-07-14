@@ -1,7 +1,7 @@
 from onnxruntime.transformers.onnx_model import OnnxModel
 import onnx
 
-path = '../live_portraiet_onnx/onnx/warping.onnx'
+path = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/Live-Portrait-ONNX/spade_generator.onnx'
 model = onnx.load(path)
 onnx_model = OnnxModel(model)
 count = len(model.graph.initializer)
@@ -27,4 +27,4 @@ for i in range(count):
         onnx_model.replace_input_of_all_nodes(model.graph.initializer[i].name, model.graph.initializer[same[i]].name)
 
 onnx_model.update_graph()
-onnx_model.save_model_to_file('live_portraiet_onnx/.onnx')
+onnx_model.save_model_to_file('/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/Live-Portrait-ONNX/spade_generator.onnx')

@@ -2,6 +2,7 @@ __pycache__
 .idea
 live_portrait_onnx_weights
 live_portrait_onnx
+Live-Portrait-ONNX
 animations
 *.pyc
 debug
