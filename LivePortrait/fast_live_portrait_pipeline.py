@@ -2,53 +2,52 @@ import cv2
 import onnxruntime as ort
 import numpy as np
 import os.path as osp
+
+import torch.cuda
 from tqdm import tqdm
 from LivePortrait.utils import load_image_rgb, resize_to_limit, Cropper, images2video, basename
 from LivePortrait.commons import PortraitController, Config
+
+print(ort.get_device())
 
 
 class LivePortraitONNX(PortraitController):
     def __init__(self, cfg=Config):
         super().__init__(cfg)
-        self.providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
+        self.providers = ['CUDAExecutionProvider', 'CoreMLExecutionProvider', 'CPUExecutionProvider']
         self.cfg = cfg
         self.cropper = Cropper(crop_cfg=self.cfg)
-        self._model_sessions = None
-        self.model_sessions()
+        self._model_sessions = self._initialize_sessions()
 
-    def model_sessions(self):
-        if self._model_sessions is None:
-            self._model_sessions = self._initialize_sessions()
-        return self._model_sessions
+    @staticmethod
+    def get_providers():
+        # Check for CUDA execution provider
+        if ort.get_device() == 'GPU':
+            return ['CUDAExecutionProvider']
+
+        # If the device is CPU, add CoreML and CPU execution providers
+        if ort.get_device() == 'CPU':
+            available_providers = ['CoreMLExecutionProvider', 'CPUExecutionProvider']
+            return available_providers
 
     def _initialize_sessions(self):
-        m_session = ort.InferenceSession(self.cfg.checkpoint_M, providers=self.providers)
-        f_session = ort.InferenceSession(self.cfg.checkpoint_F, providers=self.providers)
-        w_session = ort.InferenceSession(self.cfg.checkpoint_W, providers=self.providers)
-        g_session = ort.InferenceSession(self.cfg.checkpoint_G, providers=self.providers)
+        providers = self.get_providers()
+        m_session = ort.InferenceSession(self.cfg.checkpoint_M, providers=providers)
+        f_session = ort.InferenceSession(self.cfg.checkpoint_F, providers=providers)
+        w_session = ort.InferenceSession(self.cfg.checkpoint_W, providers=providers)
+        g_session = ort.InferenceSession(self.cfg.checkpoint_G, providers=providers)
 
-        s_session = ort.InferenceSession(self.cfg.checkpoint_S, providers=self.providers)
-        s_l_session = ort.InferenceSession(self.cfg.checkpoint_SL, providers=self.providers)
-        s_e_session = ort.InferenceSession(self.cfg.checkpoint_SE, providers=self.providers)
-
-        m_input_name = m_session.get_inputs()[0].name
-        m_output_name = m_session.get_outputs()[0].name
-
-        g_input_name = g_session.get_inputs()[0].name
-        g_output_name = g_session.get_outputs()[0].name
-
-        f_input_name = f_session.get_inputs()[0].name
-        f_output_name = f_session.get_outputs()[0].name
-
-        w_input_names = [input.name for input in w_session.get_inputs()]
-        w_output_names = [output.name for output in w_session.get_outputs()]
-
+        s_session = ort.InferenceSession(self.cfg.checkpoint_S, providers=providers)
+        s_l_session = ort.InferenceSession(self.cfg.checkpoint_SL, providers=providers)
+        s_e_session = ort.InferenceSession(self.cfg.checkpoint_SE, providers=providers)
         return {
-            'm_session': m_session, 'm_input_name': m_input_name, 'm_output_name': m_output_name,
-            'g_session': g_session, 'g_input_name': g_input_name, 'g_output_name': g_output_name,
-            'f_session': f_session, 'f_input_name': f_input_name, 'f_output_name': f_output_name,
-            'w_session': w_session, 'w_input_names': w_input_names, 'w_output_names': w_output_names,
-            's_session': s_session, 's_l_session': s_l_session, 's_e_session': s_e_session
+            'm_session': m_session,
+            'g_session': g_session,
+            'f_session': f_session,
+            'w_session': w_session,
+            's_session': s_session,
+            's_l_session': s_l_session,
+            's_e_session': s_e_session
         }
 
     def prepare_portrait(self, source_image_path):
@@ -181,7 +180,7 @@ class LivePortraitONNX(PortraitController):
                     break
                 x_s, x_d_i_new = live_portrait.get_kp_info(self._model_sessions, frame, x_s, r_s, x_s_info,
                                                            lip_delta_before_animation)
-                i_p_i = live_portrait.warp_decode(self._model_sessions, np.array(f_s), np.array(x_s),
+                i_p_i = live_portrait.warp_decode(self._model_sessions, f_s, np.array(x_s),
                                                   np.array(x_d_i_new))
                 if live_portrait.cfg.flag_pasteback:
                     mask_ori = live_portrait.prepare_paste_back(live_portrait.cfg.mask_crop, crop_info['M_c2o'],

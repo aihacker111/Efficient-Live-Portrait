@@ -7,40 +7,33 @@ class RetargetStitchPortrait:
         pass
 
     @staticmethod
-    def concat_feat(stitch_session, kp_source, kp_driving, lip_ratio, eye_ratio,
-                    lip=False, eye=False) -> torch.Tensor:
+    def concat_feat(stitch_session, kp_source, kp_driving, lip_ratio=None, eye_ratio=None,
+                    lip=False, eye=False) -> np.ndarray:
         """
+        Concatenate keypoints or ratios and run through stitch_session.
+
         kp_source: (bs, k, 3)
         kp_driving: (bs, k, 3)
-        Return: (bs, 2k*3)
+        lip_ratio: (bs, k, 3) or None
+        eye_ratio: (bs, k, 3) or None
+        Return: (bs, output_dim)
         """
-        alert = 'batch size must be equal'
-        if lip == False and eye == False:
-            bs_src = kp_source.shape[0]
-            bs_dri = kp_driving.shape[0]
-            assert bs_src == bs_dri, alert
 
-            feat = torch.cat([kp_source.view(bs_src, -1), kp_driving.view(bs_dri, -1)], dim=1)
-            delta = stitch_session.run(None, {'input': np.array(feat)})
-            return delta[0]
-        elif lip == True and eye == False:
-            bs_src = kp_source.shape[0]
-            bs_dri = lip_ratio.shape[0]
-            assert bs_src == bs_dri, alert
+        if lip:
+            assert lip_ratio is not None and kp_source.shape[0] == lip_ratio.shape[
+                0], 'Batch sizes must be equal for lips'
+            feat = torch.cat([kp_source.view(kp_source.shape[0], -1), lip_ratio.view(lip_ratio.shape[0], -1)], dim=1)
+        elif eye:
+            assert eye_ratio is not None and kp_source.shape[0] == eye_ratio.shape[
+                0], 'Batch sizes must be equal for eyes'
+            feat = torch.cat([kp_source.view(kp_source.shape[0], -1), eye_ratio.view(eye_ratio.shape[0], -1)], dim=1)
+        else:
+            feat = torch.cat([kp_source.view(kp_source.shape[0], -1), kp_driving.view(kp_driving.shape[0], -1)], dim=1)
 
-            feat = torch.cat([kp_source.view(bs_src, -1), lip_ratio.view(bs_dri, -1)], dim=1)
-            delta_lip = stitch_session.run(None, {'input': np.array(feat)})
-            return delta_lip[0]
-        elif lip == False and eye == True:
-            bs_src = kp_source.shape[0]
-            bs_dri = eye_ratio.shape[0]
-            assert bs_src == bs_dri, alert
+        delta = stitch_session.run(None, {'input': np.array(feat)})
+        return delta[0]
 
-            feat = torch.cat([kp_source.view(bs_src, -1), eye_ratio.view(bs_dri, -1)], dim=1)
-            delta_eye = stitch_session.run(None, {'input': np.array(feat)})
-            return delta_eye[0]
-
-    def stitch(self, session, kp_source: torch.Tensor, kp_driving: torch.Tensor) -> torch.Tensor:
+    def stitch(self, session, kp_source: torch.Tensor, kp_driving: torch.Tensor):
         """
         kp_source: BxNx3
         kp_driving: BxNx3
@@ -50,7 +43,7 @@ class RetargetStitchPortrait:
 
         return delta
 
-    def retarget_lip(self, session, kp_source, lip_close_ratio) -> torch.Tensor:
+    def retarget_lip(self, session, kp_source, lip_close_ratio):
         """
         kp_source: BxNx3
         lip_close_ratio: Bx2
@@ -60,7 +53,7 @@ class RetargetStitchPortrait:
 
         return delta_lip
 
-    def retarget_eye(self, session, kp_source, eye_close_ratio) -> torch.Tensor:
+    def retarget_eye(self, session, kp_source, eye_close_ratio):
         """
         kp_source: BxNx3
         lip_close_ratio: Bx2
@@ -70,7 +63,7 @@ class RetargetStitchPortrait:
 
         return delta_lip
 
-    def stitching(self, session, kp_source: torch.Tensor, kp_driving: torch.Tensor) -> torch.Tensor:
+    def stitching(self, session, kp_source: torch.Tensor, kp_driving: torch.Tensor):
         """ conduct the stitching
         kp_source: Bxnum_kpx3
         kp_driving: Bxnum_kpx3

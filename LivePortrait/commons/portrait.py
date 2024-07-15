@@ -81,21 +81,27 @@ class PortraitController(ParsingPaste):
         return x_s, x_d_i_new
 
     def get_kp_info(self, session, x, x_s, r_s, x_s_info, lip_delta_before_animation, single_image=False,
-                    run_local=False) -> tuple or dict:
-        """ get the implicit keypoint information
-        x: Bx3xHxW, normalized to 0~1
-        flag_refine_info: whether to transform the pose to degrees and the dimension of the reshape
-        return: A dict contains keys: 'pitch', 'yaw', 'roll', 't', 'exp', 'scale', 'kp'
+                    run_local=False):
         """
-        if single_image:
-            x = np.array(x)
-        elif run_local and single_image == False:
-            x = np.array(x)
-        else:
-            x = cv2.resize(x, (256, 256))
+        Get the implicit keypoint information.
+        Args:
+            session: ONNX session for model inference
+            x: Input image or video frame
+            x_s, r_s, x_s_info, lip_delta_before_animation: Additional inputs for algorithm processing
+            single_image: Boolean flag indicating if x is a single image
+            run_local: Boolean flag for local run mode
+        Returns:
+            Keypoint information as a dictionary or a tuple
+        """
+        # Prepare input based on flags
+        if single_image == False and run_local==False:
+            x = cv2.resize(x, (256, 256)) if not run_local else np.array(x)
             x = self.prepare_driving_videos([x], single_image)[0]
+
         # Perform inference with ONNX model
-        outputs = session['m_session'].run(None, {session['m_input_name']: x})
+        outputs = session['m_session'].run(None, {'input': np.array(x)})
+
+        # Convert outputs to tensors
         kps_info = {
             'pitch': torch.tensor(outputs[0]),
             'yaw': torch.tensor(outputs[1]),
@@ -106,41 +112,38 @@ class PortraitController(ParsingPaste):
             'kp': torch.tensor(outputs[6]),
         }
 
+        # Process keypoint information
         bs = kps_info['kp'].shape[0]
         kps_info['pitch'] = self.headpose_predict_to_degree(kps_info['pitch'])[:, None]  # Bx1
         kps_info['yaw'] = self.headpose_predict_to_degree(kps_info['yaw'])[:, None]  # Bx1
         kps_info['roll'] = self.headpose_predict_to_degree(kps_info['roll'])[:, None]  # Bx1
         kps_info['kp'] = kps_info['kp'].reshape(bs, -1, 3)  # BxNx3
         kps_info['exp'] = kps_info['exp'].reshape(bs, -1, 3)  # BxNx3
-        if single_image:
+
+        if single_image or run_local:
             return kps_info
-        elif run_local:
-            return kps_info
-        elif single_image == False and run_local == False:
-            x_s, x_d_i_new = self.algorithm(x_s, kps_info, r_s, x_s_info, lip_delta_before_animation,
-                                            self.cfg)
-            return x_s, x_d_i_new
+
+        x_s, x_d_i_new = self.algorithm(x_s, kps_info, r_s, x_s_info, lip_delta_before_animation, self.cfg)
+        return x_s, x_d_i_new
 
     @staticmethod
     def get_3d_feature(session, source):
-        outputs = session['f_session'].run([session['f_output_name']], {session['f_input_name']: source})
-        feature_3d = torch.tensor(outputs[0]).float()
-        return feature_3d
+        outputs = session['f_session'].run(None, {'input': source})
+        return outputs[0]
 
     def warp_decode(self, session, feature_3d, kp_source, kp_driving):
+        """
+        'occlusion_map': outputs[0],  # Example name, adjust as necessary
+        'deformation': outputs[1],  # Example name, adjust as necessary
+        'out': outputs[2]  # Example name, adjust as necessary
+        """
+
         ort_inputs = {
-            session['w_input_names'][0]: np.array(feature_3d),
-            session['w_input_names'][1]: np.array(kp_driving),
-            session['w_input_names'][2]: np.array(kp_source)
+            session['w_session'].get_inputs()[0].name: np.array(feature_3d),
+            session['w_session'].get_inputs()[1].name: np.array(kp_driving),
+            session['w_session'].get_inputs()[2].name: np.array(kp_source)
         }
+        outputs = session['w_session'].run(None, ort_inputs)
 
-        outputs = session['w_session'].run(session['w_output_names'], ort_inputs)
-        warp = {
-            'occlusion_map': outputs[0],  # Example name, adjust as necessary
-            'deformation': outputs[1],  # Example name, adjust as necessary
-            'out': outputs[2]  # Example name, adjust as necessary
-        }
-
-        generator = session['g_session'].run(None, {session['g_input_name']: warp['out']})
-        i_p = self.parse_output(generator[0])[0]
-        return i_p
+        generator = session['g_session'].run(None, {'input': outputs[2]})
+        return self.parse_output(generator[0])[0]

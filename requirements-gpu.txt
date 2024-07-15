@@ -11,7 +11,7 @@ lmdb==1.4.1
 tqdm==4.66.4
 rich==13.7.1
 ffmpeg-python==0.2.0
-onnxruntime-gpu==1.18.0
+onnxruntime-gpu==1.18.1
 onnx==1.16.1
 scikit-image==0.24.0
 albumentations==1.4.10

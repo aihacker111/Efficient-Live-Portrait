@@ -31,7 +31,7 @@ dummy_input = torch.randn(1, 3, 256, 256).to(cfg.device)  # Example shape (batch
 
 # Export the model to ONNX format
 onnx_file_path = '../live_portraiet_onnx/onnx/motion_extractor.onnx'
-torch.onnx.export(
+torch.onnx.dynamo_export(
     motion_extractor,  # model being run
     dummy_input,  # model input (or a tuple for multiple inputs)
     onnx_file_path,  # where to save the model (can be a file or file-like object)

@@ -40,15 +40,18 @@ def downloading(url, outf):
         if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
             print("ERROR, something went wrong")
         print(f"Downloaded successfully to {outf}")
+    else:
+        return outf
 
 
 def get_live_portrait_onnx():
     # Download the models and save them in the current working directory
     current_dir = os.getcwd()
+    face_dir = os.path.join(current_dir, 'live_portrait_onnx_weights')
     model_paths = {}
-    dir_path = None
     for main_key, sub_dict in MODEL_URLS.items():
-        dir_path = os.path.join(current_dir, '../../live_portrait_onnx_weights', main_key)
+        print(main_key)
+        dir_path = os.path.join(current_dir, 'live_portrait_onnx_weights', main_key)
         os.makedirs(dir_path, exist_ok=True)
         model_paths[main_key] = {}
         for sub_key, url in sub_dict.items():
@@ -56,15 +59,13 @@ def get_live_portrait_onnx():
             save_path = os.path.join(dir_path, filename)
             downloading(url, save_path)
             model_paths[main_key][sub_key] = save_path
-    print('Downloaded successfully and already saved')
-    return model_paths, dir_path
+        print('Downloaded successfully and already saved')
+    return model_paths, face_dir
 
 
 @dataclass(repr=False)  # use repr from PrintableConfig
 class Config(PrintableConfig):
-
-    model_paths, dir_path = get_live_portrait_onnx()
-
+    model_paths, face_dir = get_live_portrait_onnx()
     checkpoint_F: str = model_paths['live_portrait']['checkpoint_F']  # path to checkpoint
     checkpoint_M: str = model_paths['live_portrait']['checkpoint_M']  # path to checkpoint
     checkpoint_G: str = model_paths['live_portrait']['checkpoint_G']  # path to checkpoint
@@ -101,7 +102,7 @@ class Config(PrintableConfig):
 
     # crop config
     ckpt_landmark: str = model_paths['landmarks']['landmark']
-    ckpt_face: str = dir_path
+    ckpt_face: str = face_dir
     dsize: int = 512  # crop size
     scale: float = 2.3  # scale factor
     vx_ratio: float = 0  # vx ratio

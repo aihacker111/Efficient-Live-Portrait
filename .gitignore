@@ -8,3 +8,6 @@ debug
 code_test.py
 output_video.mp4
 push_model_hf.py
+spade_generator.onnx
+spade_generator.quant.onnx
+live_portrait_onnx_weights

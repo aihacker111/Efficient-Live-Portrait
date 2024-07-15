@@ -5,18 +5,18 @@ import numpy as np
 import os
 
 # Paths to the ONNX model files
-model_fp32 = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/live_portraiet_onnx/onnx/spade_generator.onnx'
-model_int8 = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/live_portraiet_onnx/quantization/static/spade_generator.quant.onnx'
+model_fp32 = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/spade_generator.onnx'
+model_int8 = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/spade_generator.quant.onnx'
 
 # Load the ONNX model
 onnx_model = onnx.load(model_fp32)
 
 # Simplify the ONNX model to remove unnecessary nodes
-model_simp, check = onnxsim.simplify(onnx_model)
-assert check, "Simplified ONNX model could not be validated"
+# model_simp, check = onnxsim.simplify(onnx_model)
+# assert check, "Simplified ONNX model could not be validated"
 
 # Save the simplified model
-onnx.save(model_simp, model_fp32)
+# onnx.save(model_simp, model_fp32)
 
 
 # Define a calibration data reader
@@ -50,9 +50,9 @@ class MyCalibrationDataReader(CalibrationDataReader):
 #         }])
 
 
-calibration_data_reader = MyCalibrationDataReader()
+# calibration_data_reader = MyCalibrationDataReader()
 
 # Quantize the simplified ONNX model
-quantize_static(model_fp32, model_int8, calibration_data_reader)
-
+# quantize_static(model_fp32, model_int8, calibration_data_reader)
+quantize_dynamic(model_fp32, model_int8, weight_type=QuantType.QInt8, nodes_to_exclude=['/fc/Conv_quant'])
 print(f"Quantized model saved to {model_int8}")
