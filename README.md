@@ -19,6 +19,8 @@ conda create -n ELivePortrait python==3.10.14
 conda activate ELivePortrait
 # install dependencies with pip
 pip install -r requirements.txt
+# install dependencies with pip for mps
+pip install -r requirements-mps.txt 
 ```
 
 **Note:** make sure your system has [FFmpeg](https://ffmpeg.org/) installed!
