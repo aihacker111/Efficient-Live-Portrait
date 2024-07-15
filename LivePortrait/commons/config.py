@@ -50,7 +50,6 @@ def get_live_portrait_onnx():
     face_dir = os.path.join(current_dir, 'live_portrait_onnx_weights')
     model_paths = {}
     for main_key, sub_dict in MODEL_URLS.items():
-        print(main_key)
         dir_path = os.path.join(current_dir, 'live_portrait_onnx_weights', main_key)
         os.makedirs(dir_path, exist_ok=True)
         model_paths[main_key] = {}
