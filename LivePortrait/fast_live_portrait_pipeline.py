@@ -3,12 +3,9 @@ import onnxruntime as ort
 import numpy as np
 import os.path as osp
 
-import torch.cuda
 from tqdm import tqdm
 from LivePortrait.utils import load_image_rgb, resize_to_limit, Cropper, images2video, basename
 from LivePortrait.commons import PortraitController, Config
-
-print(ort.get_device())
 
 
 class LivePortraitONNX(PortraitController):
