@@ -199,8 +199,8 @@ class LivePortraitONNX(PortraitController):
             live_portrait.mkdir('animations')
             frames_concatenated = live_portrait.concat_frames(result, driving_rgb_lst, imgs_crop_256x256)
             wfp_concat = osp.join('animations',
-                                  f'{basename(image_path)}--{basename(image_path)}_concat.mp4')
+                                  f'{basename(image_path)}--{basename(video_path_or_id)}_concat.mp4')
             images2video(frames_concatenated, wfp=wfp_concat)
 
-            wfp = osp.join('animations', f'{basename(image_path)}--{basename(image_path)}.mp4')
+            wfp = osp.join('animations', f'{basename(image_path)}--{basename(video_path_or_id)}.mp4')
             images2video(i_p_paste_lst, wfp=wfp)
