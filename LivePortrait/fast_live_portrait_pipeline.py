@@ -11,7 +11,6 @@ from LivePortrait.commons import PortraitController, Config
 class LivePortraitONNX(PortraitController):
     def __init__(self, cfg=Config):
         super().__init__(cfg)
-        self.providers = ['CUDAExecutionProvider', 'CoreMLExecutionProvider', 'CPUExecutionProvider']
         self.cfg = cfg
         self.cropper = Cropper(crop_cfg=self.cfg)
         self._model_sessions = self._initialize_sessions()
