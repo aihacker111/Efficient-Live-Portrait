@@ -9,7 +9,8 @@ This repo is the optimize task by converted to ONNX models for [LivePortrait: Ef
 We are actively updating and improving this repository. If you find any bugs or have suggestions, welcome to raise issues or submit pull requests (PR) 💖.
 
 Also we adding feature: Real-Time demo with ONNX models
-
+## Features
++ Estimate: 18/07/2024: TensorRT Engine code and Demo
 ## 🔥 Getting Started
 ### 1. Clone the code and prepare the environment
 ```bash
@@ -17,8 +18,10 @@ git clone https://github.com/aihacker111/Efficient-Live-Portrait
 # create env using conda
 conda create -n ELivePortrait python==3.10.14
 conda activate ELivePortrait
-# install dependencies with pip
-pip install -r requirements.txt
+# install dependencies with CPU
+pip install -r requirements-cpu.txt
+# install dependencies with GPU
+pip install -r requirements-gpu.txt
 # install dependencies with pip for mps
 pip install -r requirements-mps.txt 
 ```

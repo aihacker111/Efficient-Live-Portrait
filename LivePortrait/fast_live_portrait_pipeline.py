@@ -2,7 +2,6 @@ import cv2
 import onnxruntime as ort
 import numpy as np
 import os.path as osp
-
 from tqdm import tqdm
 from LivePortrait.utils import load_image_rgb, resize_to_limit, Cropper, images2video, basename
 from LivePortrait.commons import PortraitController, Config
@@ -28,6 +27,7 @@ class LivePortraitONNX(PortraitController):
 
     def _initialize_sessions(self):
         providers = self.get_providers()
+
         m_session = ort.InferenceSession(self.cfg.checkpoint_M, providers=providers)
         f_session = ort.InferenceSession(self.cfg.checkpoint_F, providers=providers)
         w_session = ort.InferenceSession(self.cfg.checkpoint_W, providers=providers)

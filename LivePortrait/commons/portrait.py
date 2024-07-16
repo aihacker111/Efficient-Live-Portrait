@@ -94,10 +94,9 @@ class PortraitController(ParsingPaste):
             Keypoint information as a dictionary or a tuple
         """
         # Prepare input based on flags
-        if single_image == False and run_local==False:
-            x = cv2.resize(x, (256, 256)) if not run_local else np.array(x)
+        if single_image == False and run_local == False:
+            x = cv2.resize(x, (256, 256)) if run_local == False else np.array(x)
             x = self.prepare_driving_videos([x], single_image)[0]
-
         # Perform inference with ONNX model
         outputs = session['m_session'].run(None, {'input': np.array(x)})
 

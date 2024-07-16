@@ -5,8 +5,8 @@ import numpy as np
 import os
 
 # Paths to the ONNX model files
-model_fp32 = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/spade_generator.onnx'
-model_int8 = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/spade_generator.quant.onnx'
+model_fp32 = '/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/experiment_examples/portrait2onnx/warping.onnx'
+model_int8 = 'warping.quant.onnx'
 
 # Load the ONNX model
 onnx_model = onnx.load(model_fp32)
@@ -54,5 +54,5 @@ class MyCalibrationDataReader(CalibrationDataReader):
 
 # Quantize the simplified ONNX model
 # quantize_static(model_fp32, model_int8, calibration_data_reader)
-quantize_dynamic(model_fp32, model_int8, weight_type=QuantType.QInt8, nodes_to_exclude=['/fc/Conv_quant'])
+quantize_dynamic(model_fp32, model_int8, weight_type=QuantType.QInt8)
 print(f"Quantized model saved to {model_int8}")

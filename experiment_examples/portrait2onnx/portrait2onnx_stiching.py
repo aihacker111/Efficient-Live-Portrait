@@ -1,6 +1,6 @@
 import torch
-from LivePortrait.utils.helper import load_model
-from Face2Vid.commons.config.inference_config import InferenceConfig
+# from LivePortrait.utils.helper import load_model
+# from Face2Vid.commons.config.inference_config import InferenceConfig
 from LivePortrait.utils.rprint import rlog as log
 import yaml
 
@@ -39,6 +39,7 @@ kp_source = torch.randn(1, 21, 3)  # Example shape, adjust as necessary
 eye_ratio = torch.randn(1, 3)
 # kp_driving = torch.randn(1, 21, 3)  # Example shape, adjust as necessary
 feat_stiching = concat_feat(kp_source, eye_ratio)
+print(feat_stiching.shape)
 # Export the model
 torch.onnx.export(
     stitching_retargeting_module['eye'],
