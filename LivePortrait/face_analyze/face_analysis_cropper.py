@@ -1,6 +1,6 @@
 # coding: utf-8
 from LivePortrait.face_analyze.modules import FaceAnalysis, LandmarkRunner
-from LivePortrait.utils.utils import load_image_rgb
+from LivePortrait.commons.utils.utils import load_image_rgb
 from LivePortrait.face_analyze.utils.crop import crop_image
 
 import numpy as np

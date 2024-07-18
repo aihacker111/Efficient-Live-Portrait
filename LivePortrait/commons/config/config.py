@@ -17,7 +17,7 @@ MODEL_URLS = {
         'checkpoint_SL': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/stitching_lip.onnx?download=true',
         'checkpoint_F_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT/resolve/main/appearance_feature_extractor.engine?download=true',
         'checkpoint_M_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT/resolve/main/motion_extractor.engine?download=true',
-        'checkpoint_G_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT/resolve/main/spade_generator.engine?download=true',
+        'checkpoint_GW_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT/resolve/main/generator.engine?download=true',
         'checkpoint_S_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT/resolve/main/stitching_retargeting.engine?download=true',
         'checkpoint_SE_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT/resolve/main/stitching_retargeting_eye.engine?download=true',
         'checkpoint_SL_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT/resolve/main/stitching_retargeting_lip.engine?download=true'
@@ -51,7 +51,7 @@ def downloading(url, outf):
         return outf
 
 
-def get_live_portrait_onnx():
+def get_efficient_live_portrait():
     # Download the models and save them in the current working directory
     current_dir = os.getcwd()
     face_dir = os.path.join(current_dir, 'live_portrait_weights')
@@ -71,7 +71,7 @@ def get_live_portrait_onnx():
 
 @dataclass(repr=False)  # use repr from PrintableConfig
 class Config(PrintableConfig):
-    model_paths, face_dir = get_live_portrait_onnx()
+    model_paths, face_dir = get_efficient_live_portrait()
     checkpoint_F: str = model_paths['live_portrait']['checkpoint_F']  # path to checkpoint
     checkpoint_M: str = model_paths['live_portrait']['checkpoint_M']  # path to checkpoint
     checkpoint_GW: str = model_paths['live_portrait']['checkpoint_GW']
@@ -81,7 +81,7 @@ class Config(PrintableConfig):
 
     rt_F: str = model_paths['live_portrait']['checkpoint_F_rt']  # path to checkpoint
     rt_M: str = model_paths['live_portrait']['checkpoint_M_rt']  # path to checkpoint
-    rt_G: str = model_paths['live_portrait']['checkpoint_G_rt']  # path to checkpoint
+    rt_GW: str = model_paths['live_portrait']['checkpoint_GW_rt']  # path to checkpoint
     rt_S: str = model_paths['live_portrait']['checkpoint_S_rt']  # path to checkpoint
     rt_SE: str = model_paths['live_portrait']['checkpoint_SE_rt']
     rt_SL: str = model_paths['live_portrait']['checkpoint_SL_rt']

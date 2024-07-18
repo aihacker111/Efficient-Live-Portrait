@@ -1,6 +1,6 @@
-from LivePortrait.utils.utils import load_driving_info
+from LivePortrait.commons.utils.utils import load_driving_info
 from .portrait_output import ParsingPaste
-from .commons import ONNXPredictor
+from LivePortrait.commons import EfficientLivePortraitPredictor
 import cv2
 import torch
 import numpy as np
@@ -10,7 +10,7 @@ class PortraitController(ParsingPaste):
     def __init__(self, cfg):
         super().__init__()
         self.cfg = cfg
-        self.predictor = ONNXPredictor(cfg)
+        self.predictor = EfficientLivePortraitPredictor(cfg)
 
     def prepare_source_image(self, img: np.ndarray) -> torch.Tensor:
         """ construct the input as standard
@@ -98,10 +98,7 @@ class PortraitController(ParsingPaste):
         if single_image == False and run_local == False:
             x = cv2.resize(x, (256, 256)) if run_local == False else x
             x = self.prepare_driving_videos([x], single_image)[0]
-        # Perform inference with ONNX model
-        # outputs = session['m_session'].run(None, {'img': np.array(x)})
-        outputs = self.predictor.inference(task='m_session', inputs=x)
-        # Convert outputs to tensors
+        outputs = self.predictor.run_time(engine_name='M', task='m_session', inputs=x)
         kps_info = {
             'pitch': torch.tensor(outputs[0]),
             'yaw': torch.tensor(outputs[1]),
@@ -127,7 +124,7 @@ class PortraitController(ParsingPaste):
         return x_s, x_d_i_new
 
     def get_3d_feature(self, source):
-        outputs = self.predictor.inference(task='f_session', inputs=source)
+        outputs = self.predictor.run_time(engine_name='F', task='f_session', inputs=source)
         return outputs[0]
 
     def warp_decode(self, feature_3d, kp_source, kp_driving):
@@ -136,12 +133,6 @@ class PortraitController(ParsingPaste):
         'deformation': outputs[1],  # Example name, adjust as necessary
         'out': outputs[2]  # Example name, adjust as necessary
         """
-
-        # ort_inputs = {
-        #     session['wg_session'].get_inputs()[0].name: np.array(feature_3d),
-        #     session['wg_session'].get_inputs()[1].name: np.array(kp_driving),
-        #     session['wg_session'].get_inputs()[2].name: np.array(kp_source)
-        # }
-        generator = self.predictor.inference(task='wg_session', inputs=[feature_3d, kp_driving, kp_source], single_input=False)
+        generator = self.predictor.run_time(engine_name='GW', task='wg_session', inputs=[feature_3d, kp_driving, kp_source], single_input=False)
 
         return self.parse_output(generator[0])[0]

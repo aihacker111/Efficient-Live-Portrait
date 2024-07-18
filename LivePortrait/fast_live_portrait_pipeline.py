@@ -3,7 +3,7 @@ import numpy as np
 import os.path as osp
 from tqdm import tqdm
 from LivePortrait.face_analyze import FaceCropper
-from LivePortrait.utils.utils import load_image_rgb, resize_to_limit, basename, images2video
+from LivePortrait.commons.utils.utils import load_image_rgb, resize_to_limit, basename, images2video
 from LivePortrait.live_portrait import PortraitController, Config
 
 
@@ -142,9 +142,9 @@ class LivePortraitONNX(PortraitController):
                 ret, frame = cap.read()
                 if not ret:
                     break
-                x_s, x_d_i_new = live_portrait.get_kp_info(self._model_sessions, frame, x_s, r_s, x_s_info,
+                x_s, x_d_i_new = live_portrait.get_kp_info(frame, x_s, r_s, x_s_info,
                                                            lip_delta_before_animation)
-                i_p_i = live_portrait.warp_decode(self._model_sessions, f_s, np.array(x_s),
+                i_p_i = live_portrait.warp_decode(f_s, np.array(x_s),
                                                   np.array(x_d_i_new))
                 if live_portrait.cfg.flag_pasteback:
                     mask_ori = live_portrait.prepare_paste_back(live_portrait.cfg.mask_crop, crop_info['M_c2o'],
