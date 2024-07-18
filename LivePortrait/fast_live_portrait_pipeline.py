@@ -1,50 +1,17 @@
 import cv2
-import onnxruntime as ort
 import numpy as np
 import os.path as osp
 from tqdm import tqdm
-from LivePortrait.utils import load_image_rgb, resize_to_limit, Cropper, images2video, basename
-from LivePortrait.commons import PortraitController, Config
+from LivePortrait.face_analyze import FaceCropper
+from LivePortrait.utils.utils import load_image_rgb, resize_to_limit, basename, images2video
+from LivePortrait.live_portrait import PortraitController, Config
 
 
 class LivePortraitONNX(PortraitController):
     def __init__(self, cfg=Config):
         super().__init__(cfg)
+        self.cropper = FaceCropper(crop_cfg=cfg)
         self.cfg = cfg
-        self.cropper = Cropper(crop_cfg=self.cfg)
-        self._model_sessions = self._initialize_sessions()
-
-    @staticmethod
-    def get_providers():
-        # Check for CUDA execution provider
-        if ort.get_device() == 'GPU':
-            return ['CUDAExecutionProvider']
-
-        # If the device is CPU, add CoreML and CPU execution providers
-        if ort.get_device() == 'CPU':
-            available_providers = ['CoreMLExecutionProvider', 'CPUExecutionProvider']
-            return available_providers
-
-    def _initialize_sessions(self):
-        providers = self.get_providers()
-
-        m_session = ort.InferenceSession(self.cfg.checkpoint_M, providers=providers)
-        f_session = ort.InferenceSession(self.cfg.checkpoint_F, providers=providers)
-        w_session = ort.InferenceSession(self.cfg.checkpoint_W, providers=providers)
-        g_session = ort.InferenceSession(self.cfg.checkpoint_G, providers=providers)
-
-        s_session = ort.InferenceSession(self.cfg.checkpoint_S, providers=providers)
-        s_l_session = ort.InferenceSession(self.cfg.checkpoint_SL, providers=providers)
-        s_e_session = ort.InferenceSession(self.cfg.checkpoint_SE, providers=providers)
-        return {
-            'm_session': m_session,
-            'g_session': g_session,
-            'f_session': f_session,
-            'w_session': w_session,
-            's_session': s_session,
-            's_l_session': s_l_session,
-            's_e_session': s_e_session
-        }
 
     def prepare_portrait(self, source_image_path):
         # Load and preprocess source image
@@ -53,6 +20,7 @@ class LivePortraitONNX(PortraitController):
         # log(f"Load source image from {source_image_path}")
         crop_info = self.cropper.crop_single_image(img_rgb)
         source_lmk = crop_info['lmk_crop']
+
         _, img_crop_256x256 = crop_info['img_crop'], crop_info['img_crop_256x256']
 
         if self.cfg.flag_do_crop:
@@ -60,11 +28,11 @@ class LivePortraitONNX(PortraitController):
         else:
             i_s = self.prepare_source_image(img_rgb)
 
-        x_s_info = self.get_kp_info(self._model_sessions, i_s, x_s=None, r_s=None, x_s_info=None,
+        x_s_info = self.get_kp_info(i_s, x_s=None, r_s=None, x_s_info=None,
                                     lip_delta_before_animation=None, single_image=True)
         x_c_s = x_s_info['kp']
         r_s = self.get_rotation_matrix(x_s_info['pitch'], x_s_info['yaw'], x_s_info['roll'])
-        f_s = self.get_3d_feature(self._model_sessions, np.array(i_s))
+        f_s = self.get_3d_feature(i_s)
         x_s = self.transform_keypoint(x_s_info)
 
         lip_delta_before_animation = None
@@ -75,7 +43,7 @@ class LivePortraitONNX(PortraitController):
             if combined_lip_ratio_tensor_before_animation[0][0] < self.cfg.lip_zero_threshold:
                 self.cfg.flag_lip_zero = False
             else:
-                lip_delta_before_animation = self.retarget_lip(self._model_sessions['s_l_session'], x_s,
+                lip_delta_before_animation = self.retarget_lip(self.predictor, x_s,
                                                                combined_lip_ratio_tensor_before_animation)
         return source_lmk, x_c_s, x_s, f_s, r_s, x_s_info, lip_delta_before_animation, crop_info, img_rgb, img_crop_256x256
 
@@ -86,7 +54,7 @@ class LivePortraitONNX(PortraitController):
         r_d_0, x_d_0_info = None, None
         for i in tqdm(range(n_frames), desc='Animating...', total=n_frames):
             i_d_i = i_d_lst[i]
-            x_d_i_info = self.get_kp_info(self._model_sessions, i_d_i, x_s, r_s, x_s_info, lip_delta_before_animation,
+            x_d_i_info = self.get_kp_info(i_d_i, x_s, r_s, x_s_info, lip_delta_before_animation,
                                           run_local=True)
             r_d_i = self.get_rotation_matrix(x_d_i_info['pitch'], x_d_i_info['yaw'], x_d_i_info['roll'])
 
@@ -118,14 +86,14 @@ class LivePortraitONNX(PortraitController):
             elif self.cfg.flag_stitching and not self.cfg.flag_eye_retargeting and not self.cfg.flag_lip_retargeting:
                 # with stitching and without retargeting
                 if self.cfg.flag_lip_zero:
-                    x_d_i_new = self.stitching(self._model_sessions['s_session'], x_s,
+                    x_d_i_new = self.stitching(self.predictor, x_s,
                                                x_d_i_new) + lip_delta_before_animation.reshape(-1,
                                                                                                x_s.shape[
                                                                                                    1],
                                                                                                3)
 
                 else:
-                    x_d_i_new = self.stitching(self._model_sessions['s_session'], x_s, x_d_i_new)
+                    x_d_i_new = self.stitching(self.predictor, x_s, x_d_i_new)
 
             else:
                 eyes_delta, lip_delta = None, None
@@ -135,13 +103,13 @@ class LivePortraitONNX(PortraitController):
                     combined_eye_ratio_tensor = self.calc_combined_eye_ratio(c_d_eyes_i,
                                                                              source_lmk)
                     # ∆_eyes,i = R_eyes(x_s; c_s,eyes, c_d,eyes,i)
-                    eyes_delta = self.retarget_eye(self._model_sessions['s_e_session'], x_s, combined_eye_ratio_tensor)
+                    eyes_delta = self.retarget_eye(self.predictor, x_s, combined_eye_ratio_tensor)
                 if self.cfg.flag_lip_retargeting:
                     c_d_lip_i = lip_ratio_lst[i]
                     combined_lip_ratio_tensor = self.calc_combined_lip_ratio(c_d_lip_i,
                                                                              source_lmk)
                     # ∆_lip,i = R_lip(x_s; c_s,lip, c_d,lip,i)
-                    lip_delta = self.retarget_lip(self._model_sessions['s_e_session'], x_s, combined_lip_ratio_tensor)
+                    lip_delta = self.retarget_lip(self.predictor, x_s, combined_lip_ratio_tensor)
 
                 if self.cfg.flag_relative:  # use x_s
                     x_d_i_new = x_s + \
@@ -153,9 +121,9 @@ class LivePortraitONNX(PortraitController):
                                 (lip_delta.reshape(-1, x_s.shape[1], 3) if lip_delta is not None else 0)
 
                 if self.cfg.flag_stitching:
-                    x_d_i_new = self.stitching(self._model_sessions['s_session'], x_s, x_d_i_new)
+                    x_d_i_new = self.stitching(self.predictor, x_s, x_d_i_new)
 
-            i_p_i = self.warp_decode(self._model_sessions, f_s, x_s, x_d_i_new)
+            i_p_i = self.warp_decode(f_s, x_s, x_d_i_new)
             i_p_lst.append(i_p_i)
             i_p_i_to_ori_blend = self.paste_back(i_p_i, crop_info['M_c2o'], img_rgb, mask_ori)
             i_p_paste_lst.append(i_p_i_to_ori_blend)
@@ -167,7 +135,7 @@ class LivePortraitONNX(PortraitController):
         """
         source_landmark, x_c_s, x_s, f_s, r_s, \
             x_s_info, lip_delta_before_animation, crop_info, \
-            img_rgb, imgs_crop_256x256 = live_portrait.prepare_portrait(source_image_path=image_path)
+            img_rgb, img_crop_256x256 = live_portrait.prepare_portrait(source_image_path=image_path)
         if real_time:
             cap = cv2.VideoCapture(int(video_path_or_id) if real_time else video_path_or_id)
             while cap.isOpened():
@@ -197,7 +165,7 @@ class LivePortraitONNX(PortraitController):
                                             input_lip_ratio_lsts,
                                             lip_delta_before_animation)
             live_portrait.mkdir('animations')
-            frames_concatenated = live_portrait.concat_frames(result, driving_rgb_lst, imgs_crop_256x256)
+            frames_concatenated = live_portrait.concat_frames(result, driving_rgb_lst, img_crop_256x256)
             wfp_concat = osp.join('animations',
                                   f'{basename(image_path)}--{basename(video_path_or_id)}_concat.mp4')
             images2video(frames_concatenated, wfp=wfp_concat)
