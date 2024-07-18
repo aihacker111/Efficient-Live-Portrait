@@ -10,7 +10,7 @@ class PortraitController(ParsingPaste):
     def __init__(self, cfg):
         super().__init__()
         self.cfg = cfg
-        self.predictor = EfficientLivePortraitPredictor(cfg)
+        self.predictor = EfficientLivePortraitPredictor(self.cfg)
 
     def prepare_source_image(self, img: np.ndarray) -> torch.Tensor:
         """ construct the input as standard

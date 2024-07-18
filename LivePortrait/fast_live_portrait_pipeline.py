@@ -3,8 +3,8 @@ import numpy as np
 import os.path as osp
 from tqdm import tqdm
 from LivePortrait.face_analyze import FaceCropper
-from LivePortrait.commons.utils.utils import load_image_rgb, resize_to_limit, basename, images2video
-from LivePortrait.live_portrait import PortraitController, Config
+from LivePortrait.commons import Config, load_image_rgb, resize_to_limit, basename, images2video
+from LivePortrait.live_portrait import PortraitController
 
 
 class LivePortraitONNX(PortraitController):

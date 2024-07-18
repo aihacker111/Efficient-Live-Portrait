@@ -7,8 +7,9 @@ import numpy as np
 
 class EfficientLivePortraitPredictor(ONNXEngine, TensorRTEngine):
     def __init__(self, cfg, use_tensorrt=False):
-        ONNXEngine.__init__(self)
         TensorRTEngine.__init__(self, cfg)
+        ONNXEngine.__init__(self)
+        # TensorRTEngine.__init__(self, cfg)
         self.cfg = cfg
         self.use_tensorrt = use_tensorrt
         self._session = self.initialize_sessions(cfg) if not use_tensorrt else None

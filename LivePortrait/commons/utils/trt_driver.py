@@ -99,13 +99,13 @@
 #         return [output.get_async(self.stream) for output in self.outputs]
 
 
+
 import tensorrt as trt
 import pycuda.driver as cuda
 import pycuda.gpuarray
 import pycuda.autoinit
 import numpy as np
 import ctypes
-
 TRT_LOGGER = trt.Logger(trt.Logger.WARNING)
 
 
@@ -150,29 +150,23 @@ class Binding:
 
 class TensorRTEngine:
     def __init__(self, cfg):
-        self.load_plugins(TRT_LOGGER)
         self.cfg = cfg
-        self.engines = self.load_engines()
-        self.contexts = {name: engine.create_execution_context() for name, engine in self.engines.items()}
+        self.load_plugins(TRT_LOGGER)
+        self.engines = {}
+        self.contexts = {}
+        self.bindings = {}
+        self.binding_addresses = {}
+        self.inputs = {}
+        self.outputs = {}
         self.stream = cuda.Stream()
-        self.bindings = {name: [Binding(engine, i) for i in range(engine.num_io_tensors)] for name, engine in
-                         self.engines.items()}
-        self.binding_addresses = {name: [binding.device_buffer.ptr for binding in self.bindings[name]] for name in
-                                  self.engines}
-        self.inputs = {name: [binding for binding in self.bindings[name] if binding.is_input] for name in self.engines}
-        self.outputs = {name: [binding for binding in self.bindings[name] if not binding.is_input] for name in
-                        self.engines}
-        self.prepare_buffers()
-
-    def __del__(self):
-        if self.engines is not None:
-            del self.engines
+        self.initialize_engine()
 
     def load_plugins(self, logger: trt.Logger):
         ctypes.CDLL(self.cfg.grid_sample_3d, mode=ctypes.RTLD_GLOBAL)
         trt.init_libnvinfer_plugins(logger, "")
 
-    def load_engines(self):
+    def initialize_engine(self):
+        # Load engines and set up contexts, bindings, and addresses
         model_paths = {
             'F': self.cfg.rt_F,
             'M': self.cfg.rt_M,
@@ -181,21 +175,25 @@ class TensorRTEngine:
             'SE': self.cfg.rt_SE,
             'SL': self.cfg.rt_SL
         }
-        engines = {}
         for name, path in model_paths.items():
-            engines[name] = self.load_engine(path)
-        return engines
+            self.engines[name] = self.load_engine(path)
+            self.contexts[name] = self.engines[name].create_execution_context()
+            bindings = [Binding(self.engines[name], i) for i in range(self.engines[name].num_io_tensors)]
+            self.bindings[name] = bindings
+            self.binding_addresses[name] = [b.device_buffer.ptr for b in bindings]
+            self.inputs[name] = [b for b in bindings if b.is_input]
+            self.outputs[name] = [b for b in bindings if not b.is_input]
+            self.prepare_buffers(name)
 
     @staticmethod
     def load_engine(engine_file_path):
         with open(engine_file_path, "rb") as f, trt.Runtime(TRT_LOGGER) as runtime:
             return runtime.deserialize_cuda_engine(f.read())
 
-    def prepare_buffers(self):
+    def prepare_buffers(self, model_name):
         # Allocate memory only once
-        for name in self.bindings:
-            for binding in self.inputs[name] + self.outputs[name]:
-                _ = binding.device_buffer  # Force buffer allocation
+        for binding in self.inputs[model_name] + self.outputs[model_name]:
+            _ = binding.device_buffer  # Force buffer allocation
 
     @staticmethod
     def check_input_validity(input_idx, input_array, input_binding):
@@ -218,19 +216,32 @@ class TensorRTEngine:
 
         return input_array
 
-    def inference_tensorrt(self, engine_name, inputs):
+    def inference_tensorrt(self, model_name, inputs):
+        # Ensure model_name is valid
+        if model_name not in self.engines:
+            raise ValueError(f"Model name {model_name} not found in engines.")
 
+        # Select the correct engine, context, and bindings based on the model_name
+        engine = self.engines[model_name]
+        context = self.contexts[model_name]
+        binding_addresses = self.binding_addresses[model_name]
+        inputs_bindings = self.inputs[model_name]
+        outputs_bindings = self.outputs[model_name]
+
+        # Convert inputs if necessary (e.g., dictionary to list based on bindings)
         if isinstance(inputs, dict):
-            inputs = [inputs[b.name] for b in self.inputs[engine_name]]
+            inputs = [inputs[b.name] for b in inputs_bindings]
 
-        for i, (input_array, input_binding) in enumerate(zip(inputs, self.inputs[engine_name])):
+        # Ensure the number of inputs matches the number of bindings
+        if len(inputs) != len(inputs_bindings):
+            raise ValueError(f"Number of input arrays does not match number of input bindings for model {model_name}.")
+
+        # Transfer input data to device
+        for i, (input_array, input_binding) in enumerate(zip(inputs, inputs_bindings)):
             input_array = self.check_input_validity(i, input_array, input_binding)
             input_binding.device_buffer.set_async(input_array, self.stream)
 
-        engine = self.engines[engine_name]
-        context = self.contexts[engine_name]
-        binding_addresses = self.binding_addresses[engine_name]
-
+        # Set tensor addresses in the context
         for i in range(engine.num_io_tensors):
             tensor_name = engine.get_tensor_name(i)
             if i < len(inputs) and engine.is_shape_inference_io(tensor_name):
@@ -238,9 +249,9 @@ class TensorRTEngine:
             else:
                 context.set_tensor_address(tensor_name, binding_addresses[i])
 
-        # Execute asynchronously and synchronize stream
+        # Perform inference
         context.execute_async_v3(self.stream.handle)
         self.stream.synchronize()
 
-        # Fetch outputs asynchronously
-        return [output.get_async(self.stream) for output in self.outputs[engine_name]]
+        # Retrieve and return output data
+        return [output.get_async(self.stream) for output in outputs_bindings]
