@@ -104,6 +104,7 @@ import pycuda.driver as cuda
 import pycuda.gpuarray
 import pycuda.autoinit
 import numpy as np
+import ctypes
 
 TRT_LOGGER = trt.Logger(trt.Logger.WARNING)
 
@@ -149,6 +150,7 @@ class Binding:
 
 class TensorRTEngine:
     def __init__(self, cfg):
+        self.load_plugins(TRT_LOGGER)
         self.cfg = cfg
         self.engines = self.load_engines()
         self.contexts = {name: engine.create_execution_context() for name, engine in self.engines.items()}
@@ -161,6 +163,14 @@ class TensorRTEngine:
         self.outputs = {name: [binding for binding in self.bindings[name] if not binding.is_input] for name in
                         self.engines}
         self.prepare_buffers()
+
+    def __del__(self):
+        if self.engines is not None:
+            del self.engines
+
+    def load_plugins(self, logger: trt.Logger):
+        ctypes.CDLL(self.cfg.grid_sample_3d, mode=ctypes.RTLD_GLOBAL)
+        trt.init_libnvinfer_plugins(logger, "")
 
     def load_engines(self):
         model_paths = {

@@ -9,6 +9,7 @@ from .base_config import PrintableConfig
 # Define the URLs for the model files
 MODEL_URLS = {
     'live_portrait': {
+        'grid_sample_3d': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT/resolve/main/libgrid_sample_3d_plugin.so?download=true',
         'checkpoint_F': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/appearance_feature_extractor.onnx?download=true',
         'checkpoint_M': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/motion_extractor.onnx?download=true',
         'checkpoint_GW': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/generator_fix_grid.onnx?download=true',
@@ -72,6 +73,7 @@ def get_efficient_live_portrait():
 @dataclass(repr=False)  # use repr from PrintableConfig
 class Config(PrintableConfig):
     model_paths, face_dir = get_efficient_live_portrait()
+    grid_sample_3d: str = model_paths['live_portrait']['grid_sample_3d']
     checkpoint_F: str = model_paths['live_portrait']['checkpoint_F']  # path to checkpoint
     checkpoint_M: str = model_paths['live_portrait']['checkpoint_M']  # path to checkpoint
     checkpoint_GW: str = model_paths['live_portrait']['checkpoint_GW']
