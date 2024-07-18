@@ -1,5 +1,6 @@
 import onnxruntime as ort
 import numpy as np
+import torch
 
 
 class ONNXPredictor:
@@ -31,6 +32,55 @@ class ONNXPredictor:
 
         return model_dict
 
+    @staticmethod
+    def inference_single_input(session, input_tensor):
+        io_binding = session.io_binding()
+
+        input_tensor = torch.tensor(input_tensor, device='cuda').contiguous()
+        input_name = session.get_inputs()[0].name
+        io_binding.bind_input(
+            name=input_name,
+            device_type='cuda',
+            device_id=0,
+            element_type=np.float32,
+            shape=tuple(input_tensor.shape),
+            buffer_ptr=input_tensor.data_ptr(),
+        )
+
+        # Bind output tensors
+        for output_name in [output.name for output in session.get_outputs()]:
+            io_binding.bind_output(output_name)
+
+        session.run_with_iobinding(io_binding)
+        outputs = io_binding.copy_outputs_to_cpu()
+
+        return outputs
+
+    @staticmethod
+    def inference_multiple_inputs(session, inputs):
+        io_binding = session.io_binding()
+
+        for idx, input_tensor in enumerate(inputs):
+            input_name = session.get_inputs()[idx].name
+            input_tensor = torch.tensor(input_tensor, device='cuda').contiguous()
+            io_binding.bind_input(
+                name=input_name,
+                device_type='cuda',
+                device_id=0,
+                element_type=np.float32,
+                shape=tuple(input_tensor.shape),
+                buffer_ptr=input_tensor.data_ptr(),
+            )
+
+        # Bind output tensors
+        for output_name in [output.name for output in session.get_outputs()]:
+            io_binding.bind_output(output_name)
+
+        session.run_with_iobinding(io_binding)
+        outputs = io_binding.copy_outputs_to_cpu()
+
+        return outputs
+
     def inference(self, task, inputs, single_input=True):
         session = self._session[task]
         if ort.get_device() == 'CPU':
@@ -38,36 +88,13 @@ class ONNXPredictor:
                 name = session.get_inputs()[0].name
                 inputs = {name: np.array(inputs)}
             else:
-                inputs = {input_name: np.array(input_tensor) for input_name, input_tensor in zip([input.name for input in session.get_inputs()], inputs)}
+                inputs = {input_name: np.array(input_tensor) for input_name, input_tensor in
+                          zip([input.name for input in session.get_inputs()], inputs)}
             outputs = session.run(None, inputs)
         else:
-            io_binding = session.io_binding()
-
             if single_input:
-                inputs = [inputs]  # Ensure inputs is a list for consistent processing
-
-            input_names = [input.name for input in session.get_inputs()]
-
-            # Bind input tensors
-            for input_name, input_tensor in zip(input_names, inputs):
-                input_tensor = input_tensor.contiguous()
-                io_binding.bind_input(
-                    name=input_name,  # Input name as specified in the ONNX model
-                    device_type='cuda',
-                    device_id=0,
-                    element_type=np.float32,
-                    shape=tuple(input_tensor.shape),
-                    buffer_ptr=input_tensor.data_ptr(),  # Buffer pointer to the tensor data
-                )
-
-            output_names = [output.name for output in session.get_outputs()]
-
-            # Bind output tensors
-            for output_name in output_names:
-                io_binding.bind_output(output_name)
-
-            session.run_with_iobinding(io_binding)
-            outputs = io_binding.copy_outputs_to_cpu()
+                outputs = self.inference_single_input(session, inputs)
+            else:
+                outputs = self.inference_multiple_inputs(session, inputs)
 
         return outputs
-

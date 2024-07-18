@@ -49,7 +49,6 @@ class PortraitController(ParsingPaste):
             y = torch.from_numpy(y).permute(0, 4, 1, 3, 2)  # TxHxWx3x1 -> Tx1x3xHxW
         else:
             y = torch.from_numpy(y).permute(0, 4, 3, 1, 2)
-        y = np.array(y).astype('float32')
         return y
 
     def process_source_motion(self, img_rgb, source_motion, crop_info, cfg, cropper):
