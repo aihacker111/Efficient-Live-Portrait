@@ -123,9 +123,6 @@ class Config:
     vx_ratio: float = 0  # vx ratio
     vy_ratio: float = -0.125  # vy ratio +up, -down
 
-    use_tensorrt: bool = False
-
-
 # Function to save the configuration to a YAML file
 def save_config_to_yaml(filename="efficient-live-portrait.yaml"):
     # Define the path where the YAML file will be saved

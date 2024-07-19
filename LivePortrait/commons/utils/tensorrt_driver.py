@@ -105,6 +105,8 @@ class TensorRTEngine:
 
     @staticmethod
     def check_input_validity(input_idx, input_array, input_binding):
+        if not input_array.flags['C_CONTIGUOUS']:
+            input_array = np.ascontiguousarray(input_array)
         if input_array.shape != input_binding.shape:
             if not (input_binding.shape == (1,) and input_array.shape == ()):
                 raise ValueError(
@@ -159,8 +161,14 @@ class TensorRTEngine:
         input_map_keys = {
             task: inputs
         }
+
         # Execute tasks sequentially
-        shape = input_map_keys[task]
+        # shape = input_map_keys[task]
+        # Ensure inputs is a list of arrays
+        if isinstance(inputs, list):
+            shape = [input.shape for input in inputs]
+        else:
+            shape = [input_map_keys[task][i].shape for i in range(len(input_map_keys[task]))]
         inputs = [np.random.randn(*s).astype(self.inputs[task][i].dtype) for i, s in enumerate(shape)]
         result = self.run_sequential_tasks(task, inputs)
         return result
