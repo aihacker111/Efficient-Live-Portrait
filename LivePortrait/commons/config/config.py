@@ -10,18 +10,26 @@ import yaml
 MODEL_URLS = {
     'live_portrait': {
         'grid_sample_3d': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT/resolve/main/libgrid_sample_3d_plugin.so?download=true',
-        'checkpoint_F': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/appearance_feature_extractor.onnx?download=true',
-        'checkpoint_M': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/motion_extractor.onnx?download=true',
-        'checkpoint_GW': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/generator_fix_grid.onnx?download=true',
-        'checkpoint_S': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/stitching.onnx?download=true',
-        'checkpoint_SE': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/stitching_eye.onnx?download=true',
-        'checkpoint_SL': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/stitching_lip.onnx?download=true',
-        'checkpoint_F_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT/resolve/main/appearance_feature_extractor.engine?download=true',
-        'checkpoint_M_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT/resolve/main/motion_extractor.engine?download=true',
-        'checkpoint_GW_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT/resolve/main/generator.engine?download=true',
-        'checkpoint_S_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT/resolve/main/stitching_retargeting.engine?download=true',
-        'checkpoint_SE_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT/resolve/main/stitching_retargeting_eye.engine?download=true',
-        'checkpoint_SL_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT/resolve/main/stitching_retargeting_lip.engine?download=true'
+        'F_onnx': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/appearance_feature_extractor.onnx?download=true',
+        'M_onnx': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/motion_extractor.onnx?download=true',
+        'GW_onnx': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/generator_fix_grid.onnx?download=true',
+        'S_onnx': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/stitching.onnx?download=true',
+        'SE_onnx': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/stitching_eye.onnx?download=true',
+        'SL_onnx': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/stitching_lip.onnx?download=true',
+        # TensorRT FP32
+        'F_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT-FP32/resolve/main/appearance_feature_extractor_fp32.engine?download=true',
+        'M_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT-FP32/resolve/main/motion_extractor_fp32.engine?download=true',
+        'GW_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT-FP32/blob/main/generator_fp32.engine',
+        'S_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT-FP32/resolve/main/stitching_fp32.engine?download=true',
+        'SE_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT-FP32/resolve/main/stitching_eye_fp32.engine?download=true',
+        'SL_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT-FP32/resolve/main/stitching_lip_fp32.engine?download=true',
+        # TensorRT FP16
+        'F_rt_half': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT-FP16/resolve/main/appearance_feature_extractor_fp16.engine?download=true',
+        'M_rt_half': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT-FP16/resolve/main/motion_extractor_fp16.engine?download=true',
+        'GW_rt_half': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT-FP16/resolve/main/generator_fp16.engine?download=true',
+        'S_rt_half': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT-FP16/resolve/main/stitching_fp16.engine?download=true',
+        'SE_rt_half': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT-FP16/resolve/main/stitching_eye_fp16.engine?download=true',
+        'SL_rt_half': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT-FP16/resolve/main/stitching_lip_fp16.engine?download=true'
     },
     'insightface': {
         '2d106det': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/2d106det.onnx?download=true',
@@ -73,19 +81,29 @@ def get_efficient_live_portrait():
 class Config:
     model_paths, face_dir = get_efficient_live_portrait()
     grid_sample_3d: str = model_paths['live_portrait']['grid_sample_3d']
-    checkpoint_F: str = model_paths['live_portrait']['checkpoint_F']  # path to checkpoint
-    checkpoint_M: str = model_paths['live_portrait']['checkpoint_M']  # path to checkpoint
-    checkpoint_GW: str = model_paths['live_portrait']['checkpoint_GW']
-    checkpoint_S: str = model_paths['live_portrait']['checkpoint_S']  # path to checkpoint
-    checkpoint_SE: str = model_paths['live_portrait']['checkpoint_SE']
-    checkpoint_SL: str = model_paths['live_portrait']['checkpoint_SL']
+    # ONNX
+    checkpoint_F: str = model_paths['live_portrait']['F_onnx']  # path to checkpoint
+    checkpoint_M: str = model_paths['live_portrait']['M_onnx']  # path to checkpoint
+    checkpoint_GW: str = model_paths['live_portrait']['GW_onnx']
+    checkpoint_S: str = model_paths['live_portrait']['S_onnx']  # path to checkpoint
+    checkpoint_SE: str = model_paths['live_portrait']['SE_onnx']
+    checkpoint_SL: str = model_paths['live_portrait']['SL_onnx']
 
-    rt_F: str = model_paths['live_portrait']['checkpoint_F_rt']  # path to checkpoint
-    rt_M: str = model_paths['live_portrait']['checkpoint_M_rt']  # path to checkpoint
-    rt_GW: str = model_paths['live_portrait']['checkpoint_GW_rt']  # path to checkpoint
-    rt_S: str = model_paths['live_portrait']['checkpoint_S_rt']  # path to checkpoint
-    rt_SE: str = model_paths['live_portrait']['checkpoint_SE_rt']
-    rt_SL: str = model_paths['live_portrait']['checkpoint_SL_rt']
+    # TensorRT FP32
+    F_rt: str = model_paths['live_portrait']['F_rt']  # path to checkpoint
+    M_rt: str = model_paths['live_portrait']['M_rt']  # path to checkpoint
+    GW_rt: str = model_paths['live_portrait']['GW_rt']  # path to checkpoint
+    S_rt: str = model_paths['live_portrait']['S_rt']  # path to checkpoint
+    SE_rt: str = model_paths['live_portrait']['SE_rt']
+    SL_rt: str = model_paths['live_portrait']['SL_rt']
+
+    # TensorRT FP16
+    F_rt_half: str = model_paths['live_portrait']['F_rt_half']  # path to checkpoint
+    M_rt_half: str = model_paths['live_portrait']['M_rt_half']  # path to checkpoint
+    GW_rt_half: str = model_paths['live_portrait']['GW_rt_half']  # path to checkpoint
+    S_rt_half: str = model_paths['live_portrait']['S_rt_half']  # path to checkpoint
+    SE_rt_half: str = model_paths['live_portrait']['SE_rt_half']
+    SL_rt_half: str = model_paths['live_portrait']['SL_rt_half']
 
     flag_use_half_precision: bool = True  # whether to use half precision
     flag_lip_zero: bool = True  # whether let the lip to close state before animation, only take effect when flag_eye_retargeting and flag_lip_retargeting is False
@@ -122,6 +140,7 @@ class Config:
     scale: float = 2.3  # scale factor
     vx_ratio: float = 0  # vx ratio
     vy_ratio: float = -0.125  # vy ratio +up, -down
+
 
 # Function to save the configuration to a YAML file
 def save_config_to_yaml(filename="efficient-live-portrait.yaml"):

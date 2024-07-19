@@ -56,7 +56,7 @@ def check_version(version, minimum, hard=True):
     assert version >= minimum, f'TensorRT version {version} is less than minimum required {minimum}'
 
 
-def export_engine(model, ims, onnx_file, file, half, dynamic, workspace=4, verbose=False, int8=False,
+def export_engine(ims, onnx_file, file, half, dynamic, workspace=4, verbose=False, int8=False,
                   prefix=colorstr("TensorRT:")):
     """
     Exports a YOLOv5 model to TensorRT engine format, requiring GPU and TensorRT>=8.0.0.
@@ -94,13 +94,15 @@ def export_engine(model, ims, onnx_file, file, half, dynamic, workspace=4, verbo
     assert onnx_file.exists(), f"failed to export ONNX file: {onnx_file}"
     f = file.with_suffix(".engine")  # TensorRT engine file
     logger = trt.Logger(trt.Logger.INFO)
-    load_plugins(logger)
+#     load_plugins(logger)
     if verbose:
         logger.min_severity = trt.Logger.Severity.VERBOSE
 
     builder = trt.Builder(logger)
     config = builder.create_builder_config()
-    config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, workspace << 30)
+     # Correct conversion: workspace size in GB to bytes
+    workspace_size_bytes = workspace * (2 ** 30)
+    config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, workspace_size_bytes)
     flags = 1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
     network = builder.create_network(flags)
     parser = trt.OnnxParser(network, logger)
@@ -150,15 +152,15 @@ import torch
 from pathlib import Path
 
 # Example input tensors (should match the input shapes expected by your ONNX model)
-input_tensor1 = torch.randn(1, 32, 16, 64, 64).cuda()  # Adjust the shape as necessary for your model
-input_tensor2 = torch.randn(1, 21, 3).cuda()  # Adjust the shape as necessary for your model
-input_tensor3 = torch.randn(1, 21, 3).cuda()  # Adjust the shape as necessary for your model
-
+# input_tensor1 = torch.randn(1, 32, 16, 64, 64).cuda()  # Adjust the shape as necessary for your model
+# input_tensor2 = torch.randn(1, 21, 3).cuda()  # Adjust the shape as necessary for your model
+# input_tensor3 = torch.randn(1, 21, 3).cuda()  # Adjust the shape as necessary for your model
+input_tensor = torch.randn(1, 3, 256, 256).cuda()
 # Path to your existing ONNX model
-onnx_model_path = Path("/content/drive/MyDrive/warping_spade-fix.onnx")
+onnx_model_path = Path("/kaggle/working/motion_extractor.onnx")
 
 # Path where you want to save the TensorRT engine
-engine_output_path = Path("generator.engine")
+engine_output_path = Path("motion_extractor_fp16.engine")
 
 # Set half precision to True if you want FP16 precision, otherwise set it to False
 use_half_precision = True
@@ -171,13 +173,12 @@ use_int8_precision = False
 
 # Call the function to export the engine
 export_engine(
-    model=None,  # Model is not needed since we are skipping the ONNX conversion step
-    ims=[input_tensor1, input_tensor2, input_tensor3],
+    ims=[input_tensor],
     onnx_file=onnx_model_path,
     file=engine_output_path,
     half=use_half_precision,
     dynamic=use_dynamic_shapes,
-    workspace=4,  # Workspace size in GB
+    workspace=12,  # Workspace size in GB
     verbose=True,  # Set to False to reduce logging output
     int8=use_int8_precision
 )

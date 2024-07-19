@@ -8,8 +8,8 @@ from LivePortrait.live_portrait import PortraitController
 
 
 class EfficientLivePortrait(PortraitController):
-    def __init__(self,use_tensorrt, **kwargs):
-        super().__init__(use_tensorrt, **kwargs)
+    def __init__(self,use_tensorrt, half, **kwargs):
+        super().__init__(use_tensorrt, half,  **kwargs)
         self.cropper = FaceCropper(**kwargs)
         self.config = kwargs
 

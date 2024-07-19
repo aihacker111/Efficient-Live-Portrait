@@ -46,19 +46,35 @@ class Binding:
         self.device_buffer.get_async(stream, self.host_buffer)
         return self.host_buffer
 
+    def cleanup(self):
+        if self._host_buf is not None:
+            del self._host_buf
+        if self._device_buf is not None:
+            del self._device_buf
+
 
 class TensorRTEngine:
-    def __init__(self, **kwargs):
+    def __init__(self, half, **kwargs):
         self.cfg = kwargs
-        self.model_paths = {
-            'feature_extractor': self.cfg['rt_F'],
-            'motion_extractor': self.cfg['rt_M'],
-            'generator': self.cfg['rt_GW'],
-            'stitching_retargeting': self.cfg['rt_S'],
-            'stitching_retargeting_eye': self.cfg['rt_SE'],
-            'stitching_retargeting_lip': self.cfg['rt_SL']
-        }
-        self.plugin_path = "/content/drive/MyDrive/libgrid_sample_3d_plugin.so"
+        if half:
+            self.model_paths = {
+                'feature_extractor': self.cfg['rt_F_half'],
+                'motion_extractor': self.cfg['rt_M_half'],
+                'generator': self.cfg['rt_GW_half'],
+                'stitching_retargeting': self.cfg['rt_S_half'],
+                'stitching_retargeting_eye': self.cfg['rt_SE_half'],
+                'stitching_retargeting_lip': self.cfg['rt_SL_half']
+            }
+        else:
+            self.model_paths = {
+                'feature_extractor': self.cfg['rt_F'],
+                'motion_extractor': self.cfg['rt_M'],
+                'generator': self.cfg['rt_GW'],
+                'stitching_retargeting': self.cfg['rt_S'],
+                'stitching_retargeting_eye': self.cfg['rt_SE'],
+                'stitching_retargeting_lip': self.cfg['rt_SL']
+            }
+        self.plugin_path = self.cfg['grid_sample_3d']
         self.load_plugins(TRT_LOGGER)
         self.engines = {}
         self.contexts = {}
@@ -70,18 +86,10 @@ class TensorRTEngine:
         self.initialize_engines()
 
     def load_plugins(self, logger: trt.Logger):
-        ctypes.CDLL(self.cfg['grid_sample_3d'], mode=ctypes.RTLD_GLOBAL)
+        ctypes.CDLL(self.plugin_path, mode=ctypes.RTLD_GLOBAL)
         trt.init_libnvinfer_plugins(logger, "")
 
     def initialize_engines(self):
-        """
-        'feature_extractor': [(1, 3, 256, 256)],
-        'motion_extractor': [(1, 3, 256, 256)],
-        'generator': [(1, 32, 16, 64, 64), (1, 21, 3), (1, 21, 3)],
-        'stitching_retargeting': [(1, 126)],
-        'stitching_retargeting_eye': [(1, 66)],
-        'stitching_retargeting_lip': [(1, 65)]
-        """
         for model_name, model_path in self.model_paths.items():
             engine = self.load_engine(model_path)
             context = engine.create_execution_context()
@@ -105,8 +113,6 @@ class TensorRTEngine:
 
     @staticmethod
     def check_input_validity(input_idx, input_array, input_binding):
-        if not input_array.flags['C_CONTIGUOUS']:
-            input_array = np.ascontiguousarray(input_array)
         if input_array.shape != input_binding.shape:
             if not (input_binding.shape == (1,) and input_array.shape == ()):
                 raise ValueError(
@@ -130,57 +136,48 @@ class TensorRTEngine:
         binding_addresses = self.binding_addresses[model_name]
         inputs_bindings = self.inputs[model_name]
         outputs_bindings = self.outputs[model_name]
+
         if isinstance(inputs, dict):
             inputs = [inputs[b.name] for b in inputs_bindings]
         if len(inputs) != len(inputs_bindings):
             raise ValueError(f"Number of input arrays does not match number of input bindings for model {model_name}.")
+
         for i, (input_array, input_binding) in enumerate(zip(inputs, inputs_bindings)):
             input_array = self.check_input_validity(i, input_array, input_binding)
-            input_binding.device_buffer.set_async(input_array, self.stream)
+            input_array = np.ascontiguousarray(input_array)  # Ensure the input array is contiguous
+            cuda.memcpy_htod(input_binding.device_buffer.ptr, input_array)
+
         for i in range(engine.num_io_tensors):
             tensor_name = engine.get_tensor_name(i)
             if i < len(inputs) and engine.is_shape_inference_io(tensor_name):
                 context.set_tensor_address(tensor_name, inputs[i].ctypes.data)
             else:
                 context.set_tensor_address(tensor_name, binding_addresses[i])
+
         try:
             context.execute_async_v3(self.stream.handle)
             self.stream.synchronize()
         except Exception as e:
             print(f"Error during inference for model {model_name}: {e}")
             return None, 0
-        try:
-            outputs = [output.get_async(self.stream) for output in outputs_bindings]
-        except Exception as e:
-            print(f"Error retrieving output for model {model_name}: {e}")
-            return None, 0
+
+        outputs = []
+        for output in outputs_bindings:
+            host_output = np.empty(output.shape, dtype=output.dtype)
+            cuda.memcpy_dtoh(host_output, output.device_buffer.ptr)
+            outputs.append(host_output)
+
         return outputs
 
     def inference_tensorrt(self, task, inputs):
-        # Define input shapes
-        input_map_keys = {
-            task: inputs
-        }
+        if not isinstance(inputs, list):
+            raise TypeError("Inputs should be a list of numpy arrays or tensors.")
 
-        # Execute tasks sequentially
-        # shape = input_map_keys[task]
-        # Ensure inputs is a list of arrays
-        if isinstance(inputs, list):
-            shape = [input.shape for input in inputs]
-        else:
-            shape = [input_map_keys[task][i].shape for i in range(len(input_map_keys[task]))]
-        inputs = [np.random.randn(*s).astype(self.inputs[task][i].dtype) for i, s in enumerate(shape)]
+        if task not in self.inputs:
+            raise ValueError(f"Task {task} not found in the model inputs.")
+
+        inputs = [self.check_input_validity(i, np.array(input_array), self.inputs[task][i])
+                  for i, input_array in enumerate(inputs)]
+
         result = self.run_sequential_tasks(task, inputs)
         return result
-
-
-if __name__ == "__main__":
-    pass
-    # Initialize TensorRT Engine
-    # trt_engine = TensorRTEngine()
-
-    # Run the sequential tasks
-    # results = trt_engine.run_sequential_tasks(task='motion_extractor', inputs=[(1, 3, 256, 256)])
-
-    # print(results)
-

@@ -3,13 +3,14 @@ import numpy as np
 
 
 class EfficientLivePortraitPredictor(ONNXEngine):
-    def __init__(self, use_tensorrt=False, **kwargs):
+    def __init__(self, use_tensorrt=False, half=False, **kwargs):
         super().__init__()
         self.use_tensorrt = use_tensorrt
+        self.half = half
         self.cfg = kwargs
         if self.use_tensorrt:
             from .utils.tensorrt_driver import TensorRTEngine
-            self.trt_engine = TensorRTEngine(**kwargs)
+            self.trt_engine = TensorRTEngine(self.half, **kwargs)
         else:
             self.onnx_engine = ONNXEngine().initialize_sessions(self.cfg)
 

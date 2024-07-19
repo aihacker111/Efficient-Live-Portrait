@@ -29,8 +29,7 @@ class ParsingPaste(Transform3DFunction):
     def prepare_paste_back(self, mask_crop, crop_m_c2o, dsize):
         """prepare mask for later image paste back
         """
-        if mask_crop is None:
-            mask_crop = cv2.imread(self.make_abs_path('./resources/mask_template.png'), cv2.IMREAD_COLOR)
+        mask_crop = cv2.imread(self.make_abs_path('./resources/mask_template.png'), cv2.IMREAD_COLOR)
         mask_ori = self._transform_img(mask_crop, crop_m_c2o, dsize)
         mask_ori = mask_ori.astype(np.float32) / 255.
         return mask_ori

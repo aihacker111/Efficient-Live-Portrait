@@ -2,6 +2,8 @@ __pycache__
 .idea
 animations/Live-Portrait-ONNX
 Live-Portrait-TensorRT
+Live-Portrait-TensorRT-FP32
+Live-Portrait-TensorRT-FP16
 live_portrait_weights
 animations
 *.pyc

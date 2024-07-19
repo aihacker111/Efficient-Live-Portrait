@@ -41,7 +41,7 @@ class RetargetStitchPortrait:
             engine_name = 'stitching_retargeting_eye'
         inputs = {'input': np.array(feat)}
         # Perform inference with the selected task
-        delta = stitch_session.run_time(engine_name=engine_name, task=task, inputs_onnx=inputs, inputs_tensorrt=np.array(feat))
+        delta = stitch_session.run_time(engine_name=engine_name, task=task, inputs_onnx=inputs, inputs_tensorrt=[feat])
 
         return delta[0]
 
