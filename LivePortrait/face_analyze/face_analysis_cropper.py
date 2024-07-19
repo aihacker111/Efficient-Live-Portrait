@@ -30,17 +30,17 @@ class Trajectory:
 class FaceCropper(object):
     def __init__(self, **kwargs) -> None:
         device_id = kwargs.get('device_id', 0)
-        cfg = kwargs.get('crop_cfg')
+        cfg = kwargs
         self.landmark_runner = LandmarkRunner(
-            ckpt_path=cfg.ckpt_landmark,
+            ckpt_path=cfg['ckpt_landmark'],
             onnx_provider='cuda',
             device_id=device_id
         )
         self.landmark_runner.warmup()
 
         self.face_analysis_wrapper = FaceAnalysis(
-            det_path=cfg.ckpt_det,
-            landmark_106_path=cfg.ckpt_landmark_106
+            det_path=cfg['ckpt_det'],
+            landmark_106_path=cfg['ckpt_landmark_106']
         )
         self.face_analysis_wrapper.prepare(ctx_id=device_id, det_size=(512, 512))
         self.face_analysis_wrapper.warmup()

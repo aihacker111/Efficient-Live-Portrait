@@ -1,10 +1,10 @@
 import os
 import requests
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import Literal, Tuple
 from tqdm import tqdm
 import torch.cuda
-from .base_config import PrintableConfig
+import yaml
 
 # Define the URLs for the model files
 MODEL_URLS = {
@@ -23,7 +23,6 @@ MODEL_URLS = {
         'checkpoint_SE_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT/resolve/main/stitching_retargeting_eye.engine?download=true',
         'checkpoint_SL_rt': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT/resolve/main/stitching_retargeting_lip.engine?download=true'
     },
-
     'insightface': {
         '2d106det': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/2d106det.onnx?download=true',
         'det_10g': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/det_10g.onnx?download=true',
@@ -71,7 +70,7 @@ def get_efficient_live_portrait():
 
 
 @dataclass(repr=False)  # use repr from PrintableConfig
-class Config(PrintableConfig):
+class Config:
     model_paths, face_dir = get_efficient_live_portrait()
     grid_sample_3d: str = model_paths['live_portrait']['grid_sample_3d']
     checkpoint_F: str = model_paths['live_portrait']['checkpoint_F']  # path to checkpoint
@@ -107,7 +106,7 @@ class Config(PrintableConfig):
     output_format: Literal['mp4', 'gif'] = 'mp4'  # output video format
     output_fps: int = 30  # fps for output video
     crf: int = 15  # crf for output video
-    mask_crop = None
+    mask_crop: str = 'None'
     size_gif: int = 256
     ref_max_shape: int = 1280
     ref_shape_n: int = 2
@@ -123,3 +122,16 @@ class Config(PrintableConfig):
     scale: float = 2.3  # scale factor
     vx_ratio: float = 0  # vx ratio
     vy_ratio: float = -0.125  # vy ratio +up, -down
+
+    use_tensorrt: bool = False
+
+
+# Function to save the configuration to a YAML file
+def save_config_to_yaml(filename="efficient-live-portrait.yaml"):
+    # Define the path where the YAML file will be saved
+    file_path = os.path.join(os.getcwd(), filename)
+    if not os.path.exists(file_path):
+        # Save the configuration to the YAML file
+        with open(file_path, 'w') as file:
+            yaml.safe_dump(asdict(Config()), file)
+    return file_path

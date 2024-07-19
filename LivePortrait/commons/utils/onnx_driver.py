@@ -23,67 +23,28 @@ class ONNXEngine:
         Initialize ONNX InferenceSession instances for each model checkpoint.
 
         Args:
-        - cfg (Config): Configuration object containing checkpoint paths.
+        - cfg (dict): Configuration dictionary containing checkpoint paths.
 
         Returns:
         - Dict[str, ort.InferenceSession]: Dictionary mapping session names to InferenceSession objects.
         """
         providers = self.get_providers()
 
-        model_sessions = {}
-        model_names = ['wg', 'm', 'f', 's', 's_l', 's_e']  # Example model names
+        # Initialize each session manually
+        gw_session = ort.InferenceSession(cfg.get("checkpoint_GW"), providers=providers)
+        m_session = ort.InferenceSession(cfg.get("checkpoint_M"), providers=providers)
+        f_session = ort.InferenceSession(cfg.get("checkpoint_F"), providers=providers)
+        s_session = ort.InferenceSession(cfg.get("checkpoint_S"), providers=providers)
+        se_session = ort.InferenceSession(cfg.get("checkpoint_SE"), providers=providers)
+        sl_session = ort.InferenceSession(cfg.get("checkpoint_SL"), providers=providers)
 
-        for name in model_names:
-            model_path = getattr(cfg, f"checkpoint_{name.upper()}")
-            model_sessions[f"{name}_session"] = ort.InferenceSession(model_path, providers=providers)
+        # Return the sessions in a dictionary
+        return {
+            "gw_session": gw_session,
+            "m_session": m_session,
+            "f_session": f_session,
+            "s_session": s_session,
+            "se_session": se_session,
+            "sl_session": sl_session
+        }
 
-        return model_sessions
-
-    @staticmethod
-    def inference_single_input(session, input_tensor):
-        """Perform inference with a single input tensor."""
-        io_binding = session.io_binding()
-
-        input_tensor = torch.tensor(input_tensor, device='cuda').contiguous()
-        input_name = session.get_inputs()[0].name
-        io_binding.bind_input(
-            name=input_name,
-            device_type='cuda',
-            device_id=0,
-            element_type=np.float32,
-            shape=tuple(input_tensor.shape),
-            buffer_ptr=input_tensor.data_ptr(),
-        )
-
-        for output_name in [output.name for output in session.get_outputs()]:
-            io_binding.bind_output(output_name)
-
-        session.run_with_iobinding(io_binding)
-        outputs = io_binding.copy_outputs_to_cpu()
-
-        return outputs
-
-    @staticmethod
-    def inference_multiple_inputs(session, inputs):
-        """Perform inference with multiple input tensors."""
-        io_binding = session.io_binding()
-
-        for idx, input_tensor in enumerate(inputs):
-            input_name = session.get_inputs()[idx].name
-            input_tensor = torch.tensor(input_tensor, device='cuda').contiguous()
-            io_binding.bind_input(
-                name=input_name,
-                device_type='cuda',
-                device_id=0,
-                element_type=np.float32,
-                shape=tuple(input_tensor.shape),
-                buffer_ptr=input_tensor.data_ptr(),
-            )
-
-        for output_name in [output.name for output in session.get_outputs()]:
-            io_binding.bind_output(output_name)
-
-        session.run_with_iobinding(io_binding)
-        outputs = io_binding.copy_outputs_to_cpu()
-
-        return outputs

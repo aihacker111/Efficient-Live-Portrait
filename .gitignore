@@ -12,3 +12,5 @@ output_video.mp4
 push_model_hf.py
 spade_generator.onnx
 spade_generator.quant.onnx
+efficient-live-portrait.yaml
+test_cfg.py

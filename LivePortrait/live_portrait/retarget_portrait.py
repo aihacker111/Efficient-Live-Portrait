@@ -34,14 +34,14 @@ class RetargetStitchPortrait:
         task = 's_session'
         engine_name = 'S'
         if lip:
-            task = 's_l_session'
+            task = 'sl_session'
             engine_name = 'SL'
         elif eye:
-            task = 's_e_session'
+            task = 'se_session'
             engine_name = 'SE'
-
+        inputs = {'input': np.array(feat)}
         # Perform inference with the selected task
-        delta = stitch_session.run_time(engine_name=engine_name, task=task, inputs=feat)
+        delta = stitch_session.run_time(engine_name=engine_name, task=task, inputs_onnx=inputs, inputs_tensorrt=np.array(feat))
 
         return delta[0]
 

@@ -7,18 +7,15 @@ import numpy as np
 
 
 class PortraitController(ParsingPaste):
-    def __init__(self, cfg):
+    def __init__(self, use_tensorrt, **kwargs):
         super().__init__()
-        self.cfg = cfg
-        self.predictor = EfficientLivePortraitPredictor(self.cfg)
+        self.predictor = EfficientLivePortraitPredictor(use_tensorrt, **kwargs)
+        self.cfg = kwargs  # Store kwargs as a configuration dictionary
 
     def prepare_source_image(self, img: np.ndarray) -> torch.Tensor:
-        """ construct the input as standard
-        img: HxWx3, uint8, 256x256
-        """
         h, w = img.shape[:2]
-        if h != self.cfg.input_shape[0] or w != self.cfg.input_shape[1]:
-            x = cv2.resize(img, (self.cfg.input_shape[0], self.cfg.input_shape[1]))
+        if h != self.cfg['input_shape'][0] or w != self.cfg['input_shape'][1]:
+            x = cv2.resize(img, (self.cfg['input_shape'][0], self.cfg['input_shape'][1]))
         else:
             x = img.copy()
 
@@ -34,9 +31,6 @@ class PortraitController(ParsingPaste):
 
     @staticmethod
     def prepare_driving_videos(imgs, single_image):
-        """ construct the input as standard
-        imgs: NxBxHxWx3, uint8
-        """
         if isinstance(imgs, list):
             _imgs = np.array(imgs)[..., np.newaxis]  # TxHxWx3x1
         elif isinstance(imgs, np.ndarray):
@@ -51,7 +45,7 @@ class PortraitController(ParsingPaste):
             y = torch.from_numpy(y).permute(0, 4, 3, 1, 2)
         return y
 
-    def process_source_motion(self, img_rgb, source_motion, crop_info, cfg, cropper):
+    def process_source_motion(self, img_rgb, source_motion, crop_info, cropper):
         template_lst = None
         input_eye_ratio_lst = None
         input_lip_ratio_lst = None
@@ -59,15 +53,15 @@ class PortraitController(ParsingPaste):
         driving_rgb_lst_256 = [cv2.resize(_, (256, 256)) for _ in driving_rgb_lst]
         i_d_lst = self.prepare_driving_videos(driving_rgb_lst_256, single_image=False)
         n_frames = i_d_lst.shape[0]
-        if cfg.flag_eye_retargeting or cfg.flag_lip_retargeting:
+        if self.cfg['flag_eye_retargeting'] or self.cfg['flag_lip_retargeting']:
             driving_lmk_lst = cropper.get_retargeting_lmk_info(driving_rgb_lst)
             input_eye_ratio_lst, input_lip_ratio_lst = self.calc_retargeting_ratio(driving_lmk_lst)
-        mask_ori = self.prepare_paste_back(cfg.mask_crop, crop_info['M_c2o'],
+        mask_ori = self.prepare_paste_back(self.cfg['mask_crop'], crop_info['M_c2o'],
                                            dsize=(img_rgb.shape[1], img_rgb.shape[0]))
         i_p_paste_lst = []
         return mask_ori, driving_rgb_lst, i_d_lst, i_p_paste_lst, template_lst, n_frames, input_eye_ratio_lst, input_lip_ratio_lst
 
-    def algorithm(self, x_s, x_d_i_info, r_s, x_s_info, lip_delta_before_animation, cfg):
+    def algorithm(self, x_s, x_d_i_info, r_s, x_s_info, lip_delta_before_animation):
         r_d_i = self.get_rotation_matrix(x_d_i_info['pitch'], x_d_i_info['yaw'], x_d_i_info['roll'])
 
         r_new = r_d_i @ r_s
@@ -77,28 +71,16 @@ class PortraitController(ParsingPaste):
         t_new[..., 2].fill_(0)  # zero tz
 
         x_d_i_new = scale_new * (x_s @ r_new + delta_new) + t_new
-        if cfg.flag_lip_zero and lip_delta_before_animation is not None:
+        if self.cfg['flag_lip_zero'] and lip_delta_before_animation is not None:
             x_d_i_new += lip_delta_before_animation.reshape(-1, x_s.shape[1], 3)
         return x_s, x_d_i_new
 
-    def get_kp_info(self, x, x_s, r_s, x_s_info, lip_delta_before_animation, single_image=False,
-                    run_local=False):
-        """
-        Get the implicit keypoint information.
-        Args:
-            session: ONNX session for model inference
-            x: Input image or video frame
-            x_s, r_s, x_s_info, lip_delta_before_animation: Additional inputs for algorithm processing
-            single_image: Boolean flag indicating if x is a single image
-            run_local: Boolean flag for local run mode
-        Returns:
-            Keypoint information as a dictionary or a tuple
-        """
-        # Prepare input based on flags
+    def get_kp_info(self, x, x_s, r_s, x_s_info, lip_delta_before_animation, single_image=False, run_local=False):
         if single_image == False and run_local == False:
             x = cv2.resize(x, (256, 256)) if run_local == False else x
             x = self.prepare_driving_videos([x], single_image)[0]
-        outputs = self.predictor.run_time(engine_name='M', task='m_session', inputs=x)
+        inputs = {'img': np.array(x)}
+        outputs = self.predictor.run_time(engine_name='M', task='m_session', inputs_onnx=inputs, inputs_tensorrt=np.array(x))
         kps_info = {
             'pitch': torch.tensor(outputs[0]),
             'yaw': torch.tensor(outputs[1]),
@@ -109,7 +91,6 @@ class PortraitController(ParsingPaste):
             'kp': torch.tensor(outputs[6]),
         }
 
-        # Process keypoint information
         bs = kps_info['kp'].shape[0]
         kps_info['pitch'] = self.headpose_predict_to_degree(kps_info['pitch'])[:, None]  # Bx1
         kps_info['yaw'] = self.headpose_predict_to_degree(kps_info['yaw'])[:, None]  # Bx1
@@ -120,19 +101,20 @@ class PortraitController(ParsingPaste):
         if single_image or run_local:
             return kps_info
 
-        x_s, x_d_i_new = self.algorithm(x_s, kps_info, r_s, x_s_info, lip_delta_before_animation, self.cfg)
+        x_s, x_d_i_new = self.algorithm(x_s, kps_info, r_s, x_s_info, lip_delta_before_animation)
         return x_s, x_d_i_new
 
     def get_3d_feature(self, source):
-        outputs = self.predictor.run_time(engine_name='F', task='f_session', inputs=source)
+        inputs = {'img': np.array(source)}
+        outputs = self.predictor.run_time(engine_name='F', task='f_session', inputs_onnx=inputs, inputs_tensorrt=np.array(source))
         return outputs[0]
 
     def warp_decode(self, feature_3d, kp_source, kp_driving):
-        """
-        'occlusion_map': outputs[0],  # Example name, adjust as necessary
-        'deformation': outputs[1],  # Example name, adjust as necessary
-        'out': outputs[2]  # Example name, adjust as necessary
-        """
-        generator = self.predictor.run_time(engine_name='GW', task='wg_session', inputs=[feature_3d, kp_driving, kp_source], single_input=False)
-
+        inputs = {
+            'feature_3d': np.array(feature_3d),
+            'kp_driving': np.array(kp_driving),
+            'kp_source': np.array(kp_source)
+        }
+        generator = self.predictor.run_time(engine_name='GW', task='gw_session',
+                                            inputs_onnx=inputs, inputs_tensorrt=[np.array(feature_3d), np.array(kp_driving), np.array(kp_source)])
         return self.parse_output(generator[0])[0]

@@ -3,27 +3,27 @@ import numpy as np
 import os.path as osp
 from tqdm import tqdm
 from LivePortrait.face_analyze import FaceCropper
-from LivePortrait.commons import Config, load_image_rgb, resize_to_limit, basename, images2video
+from LivePortrait.commons import load_image_rgb, resize_to_limit, basename, images2video
 from LivePortrait.live_portrait import PortraitController
 
 
-class LivePortraitONNX(PortraitController):
-    def __init__(self, cfg=Config):
-        super().__init__(cfg)
-        self.cropper = FaceCropper(crop_cfg=cfg)
-        self.cfg = cfg
+class EfficientLivePortrait(PortraitController):
+    def __init__(self,use_tensorrt, **kwargs):
+        super().__init__(use_tensorrt, **kwargs)
+        self.cropper = FaceCropper(**kwargs)
+        self.config = kwargs
 
     def prepare_portrait(self, source_image_path):
         # Load and preprocess source image
         img_rgb = load_image_rgb(source_image_path)
-        img_rgb = resize_to_limit(img_rgb, self.cfg.ref_max_shape, self.cfg.ref_shape_n)
+        img_rgb = resize_to_limit(img_rgb, self.config['ref_max_shape'], self.config['ref_shape_n'])
         # log(f"Load source image from {source_image_path}")
         crop_info = self.cropper.crop_single_image(img_rgb)
         source_lmk = crop_info['lmk_crop']
 
         _, img_crop_256x256 = crop_info['img_crop'], crop_info['img_crop_256x256']
 
-        if self.cfg.flag_do_crop:
+        if self.config['flag_do_crop']:
             i_s = self.prepare_source_image(img_crop_256x256)
         else:
             i_s = self.prepare_source_image(img_rgb)
@@ -36,12 +36,12 @@ class LivePortraitONNX(PortraitController):
         x_s = self.transform_keypoint(x_s_info)
 
         lip_delta_before_animation = None
-        if self.cfg.flag_lip_zero:
+        if self.config['flag_lip_zero']:
             c_d_lip_before_animation = [0.]
             combined_lip_ratio_tensor_before_animation = self.calc_combined_lip_ratio(
                 c_d_lip_before_animation, crop_info['lmk_crop'])
-            if combined_lip_ratio_tensor_before_animation[0][0] < self.cfg.lip_zero_threshold:
-                self.cfg.flag_lip_zero = False
+            if combined_lip_ratio_tensor_before_animation[0][0] < self.config['lip_zero_threshold']:
+                self.config['flag_lip_zero'] = False
             else:
                 lip_delta_before_animation = self.retarget_lip(self.predictor, x_s,
                                                                combined_lip_ratio_tensor_before_animation)
@@ -62,7 +62,7 @@ class LivePortraitONNX(PortraitController):
                 r_d_0 = r_d_i
                 x_d_0_info = x_d_i_info
 
-            if self.cfg.flag_relative:
+            if self.config['flag_relative']:
                 r_new = (r_d_i @ r_d_0.permute(0, 2, 1)) @ r_s
                 delta_new = x_s_info['exp'] + (x_d_i_info['exp'] - x_d_0_info['exp'])
                 scale_new = x_s_info['scale'] * (x_d_i_info['scale'] / x_d_0_info['scale'])
@@ -77,15 +77,15 @@ class LivePortraitONNX(PortraitController):
             x_d_i_new = scale_new * (x_c_s @ r_new + delta_new) + t_new
 
             # Algorithm 1:
-            if not self.cfg.flag_stitching and not self.cfg.flag_eye_retargeting and not self.cfg.flag_lip_retargeting:
+            if not self.config['flag_stitching'] and not self.config['flag_eye_retargeting'] and not self.config['flag_lip_retargeting']:
                 # without stitching or retargeting
-                if self.cfg.flag_lip_zero:
+                if self.config['flag_lip_zero']:
                     x_d_i_new += lip_delta_before_animation.reshape(-1, x_s.shape[1], 3)
                 else:
                     pass
-            elif self.cfg.flag_stitching and not self.cfg.flag_eye_retargeting and not self.cfg.flag_lip_retargeting:
+            elif self.config['flag_stitching'] and not self.config['flag_eye_retargeting'] and not self.config['flag_lip_retargeting']:
                 # with stitching and without retargeting
-                if self.cfg.flag_lip_zero:
+                if self.config['flag_lip_zero']:
                     x_d_i_new = self.stitching(self.predictor, x_s,
                                                x_d_i_new) + lip_delta_before_animation.reshape(-1,
                                                                                                x_s.shape[
@@ -98,20 +98,20 @@ class LivePortraitONNX(PortraitController):
             else:
                 eyes_delta, lip_delta = None, None
 
-                if self.cfg.flag_eye_retargeting:
+                if self.config['flag_eye_retargeting']:
                     c_d_eyes_i = eye_ratio_lst[i]
                     combined_eye_ratio_tensor = self.calc_combined_eye_ratio(c_d_eyes_i,
                                                                              source_lmk)
                     # ∆_eyes,i = R_eyes(x_s; c_s,eyes, c_d,eyes,i)
                     eyes_delta = self.retarget_eye(self.predictor, x_s, combined_eye_ratio_tensor)
-                if self.cfg.flag_lip_retargeting:
+                if self.config['flag_lip_retargeting']:
                     c_d_lip_i = lip_ratio_lst[i]
                     combined_lip_ratio_tensor = self.calc_combined_lip_ratio(c_d_lip_i,
                                                                              source_lmk)
                     # ∆_lip,i = R_lip(x_s; c_s,lip, c_d,lip,i)
                     lip_delta = self.retarget_lip(self.predictor, x_s, combined_lip_ratio_tensor)
 
-                if self.cfg.flag_relative:  # use x_s
+                if self.config['flag_relative']:  # use x_s
                     x_d_i_new = x_s + \
                                 (eyes_delta.reshape(-1, x_s.shape[1], 3) if eyes_delta is not None else 0) + \
                                 (lip_delta.reshape(-1, x_s.shape[1], 3) if lip_delta is not None else 0)
@@ -120,7 +120,7 @@ class LivePortraitONNX(PortraitController):
                                 (eyes_delta.reshape(-1, x_s.shape[1], 3) if eyes_delta is not None else 0) + \
                                 (lip_delta.reshape(-1, x_s.shape[1], 3) if lip_delta is not None else 0)
 
-                if self.cfg.flag_stitching:
+                if self.config['flag_stitching']:
                     x_d_i_new = self.stitching(self.predictor, x_s, x_d_i_new)
 
             i_p_i = self.warp_decode(f_s, x_s, x_d_i_new)
@@ -146,8 +146,8 @@ class LivePortraitONNX(PortraitController):
                                                            lip_delta_before_animation)
                 i_p_i = live_portrait.warp_decode(f_s, np.array(x_s),
                                                   np.array(x_d_i_new))
-                if live_portrait.cfg.flag_pasteback:
-                    mask_ori = live_portrait.prepare_paste_back(live_portrait.cfg.mask_crop, crop_info['M_c2o'],
+                if live_portrait.config['flag_pasteback']:
+                    mask_ori = live_portrait.prepare_paste_back(live_portrait.config['mask_crop'], crop_info['M_c2o'],
                                                                 dsize=(img_rgb.shape[1], img_rgb.shape[0]))
                     i_p_i_to_ori_blend = live_portrait.paste_back(i_p_i, crop_info['M_c2o'], img_rgb, mask_ori)
                     cv2.imshow('a', i_p_i_to_ori_blend[:, :, ::-1])
@@ -158,7 +158,7 @@ class LivePortraitONNX(PortraitController):
         else:
 
             mask_ori, driving_rgb_lst, i_d_lsts, i_p_paste_lst, _, n_frames, input_eye_ratio_lsts, input_lip_ratio_lsts = live_portrait.process_source_motion(
-                img_rgb, video_path_or_id, crop_info, live_portrait.cfg, live_portrait.cropper)
+                img_rgb, video_path_or_id, crop_info, live_portrait.cropper)
 
             result = live_portrait.generate(n_frames, source_landmark, crop_info, img_rgb, mask_ori, i_d_lsts,
                                             i_p_paste_lst, x_s, r_s, f_s, x_s_info, x_c_s, input_eye_ratio_lsts,

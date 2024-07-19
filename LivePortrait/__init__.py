@@ -1,1 +1,1 @@
-from .fast_live_portrait_pipeline import LivePortraitONNX
+from .fast_live_portrait_pipeline import EfficientLivePortrait

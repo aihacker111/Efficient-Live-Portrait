@@ -1,38 +1,46 @@
-# efficient_live_portrait_predictor.py
-
-from .utils import ONNXEngine, TensorRTEngine
-import onnxruntime as ort
+from .utils.onnx_driver import ONNXEngine
 import numpy as np
 
 
-class EfficientLivePortraitPredictor(ONNXEngine, TensorRTEngine):
-    def __init__(self, cfg, use_tensorrt=False):
-        TensorRTEngine.__init__(self, cfg)
-        ONNXEngine.__init__(self)
-        # TensorRTEngine.__init__(self, cfg)
-        self.cfg = cfg
+class EfficientLivePortraitPredictor(ONNXEngine):
+    def __init__(self, use_tensorrt=False, **kwargs):
+        super().__init__()
         self.use_tensorrt = use_tensorrt
-        self._session = self.initialize_sessions(cfg) if not use_tensorrt else None
-
-    def run_time(self, engine_name, task,  inputs, single_input=True):
+        self.cfg = kwargs
         if self.use_tensorrt:
-            return self.inference_tensorrt(inputs, engine_name)
+            from .utils.tensorrt_driver import TensorRTEngine
+            self.trt_engine = TensorRTEngine(**kwargs)
         else:
-            return self.inference_onnx(task, inputs, single_input)
+            self.onnx_engine = ONNXEngine().initialize_sessions(self.cfg)
 
-    def inference_onnx(self, task, inputs, single_input=True):
-        session = self._session[task]
-        if ort.get_device() == 'CPU':
-            if single_input:
-                name = session.get_inputs()[0].name
-                inputs = {name: np.array(inputs)}
-            else:
-                inputs = {input.name: np.array(input_tensor) for input, input_tensor in
-                          zip(session.get_inputs(), inputs)}
-            outputs = session.run(None, inputs)
+    def run_time(self, engine_name, task, inputs_onnx=None, inputs_tensorrt=None):
+        """
+        Run inference using either TensorRT or ONNX Runtime based on the configuration.
+
+        Args:
+        - engine_name (str): Name of the engine/model.
+        - task (str): The task or model session name.
+        - inputs_onnx (dict): Input dict for inference.
+        - inputs_tensorrt(np.array or tensor): Input for inference TensorRT
+        Returns:
+        - The outputs from the inference.
+        """
+        if self.use_tensorrt:
+            return self.trt_engine.inference_tensorrt(engine_name, inputs_tensorrt)
         else:
-            if single_input:
-                outputs = self.inference_single_input(session, inputs)
-            else:
-                outputs = self.inference_multiple_inputs(session, inputs)
+            return self.inference_onnx(task, inputs_onnx)
+
+    def inference_onnx(self, task, inputs):
+        """
+        Perform inference using ONNX Runtime.
+
+        Args:
+        - task (str): The name of the task/model to use for inference.
+        - inputs (list or array): A list or array of input tensors.
+
+        Returns:
+        - List: The outputs of the inference.
+        """
+        session = self.onnx_engine[task]
+        outputs = session.run(None, inputs)
         return outputs
