@@ -80,7 +80,7 @@ class PortraitController(ParsingPaste):
             x = cv2.resize(x, (256, 256)) if run_local == False else x
             x = self.prepare_driving_videos([x], single_image)[0]
         inputs = {'img': np.array(x)}
-        outputs = self.predictor.run_time(engine_name='M', task='m_session', inputs_onnx=inputs, inputs_tensorrt=np.array(x))
+        outputs = self.predictor.run_time(engine_name='motion_extractor', task='m_session', inputs_onnx=inputs, inputs_tensorrt=np.array(x))
         kps_info = {
             'pitch': torch.tensor(outputs[0]),
             'yaw': torch.tensor(outputs[1]),
@@ -106,7 +106,7 @@ class PortraitController(ParsingPaste):
 
     def get_3d_feature(self, source):
         inputs = {'img': np.array(source)}
-        outputs = self.predictor.run_time(engine_name='F', task='f_session', inputs_onnx=inputs, inputs_tensorrt=np.array(source))
+        outputs = self.predictor.run_time(engine_name='feature_extractor', task='f_session', inputs_onnx=inputs, inputs_tensorrt=np.array(source))
         return outputs[0]
 
     def warp_decode(self, feature_3d, kp_source, kp_driving):
@@ -115,6 +115,6 @@ class PortraitController(ParsingPaste):
             'kp_driving': np.array(kp_driving),
             'kp_source': np.array(kp_source)
         }
-        generator = self.predictor.run_time(engine_name='GW', task='gw_session',
+        generator = self.predictor.run_time(engine_name='generator', task='gw_session',
                                             inputs_onnx=inputs, inputs_tensorrt=[np.array(feature_3d), np.array(kp_driving), np.array(kp_source)])
         return self.parse_output(generator[0])[0]
