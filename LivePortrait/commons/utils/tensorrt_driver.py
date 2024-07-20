@@ -58,21 +58,21 @@ class TensorRTEngine:
         self.cfg = kwargs
         if half:
             self.model_paths = {
-                'feature_extractor': self.cfg['rt_F_half'],
-                'motion_extractor': self.cfg['rt_M_half'],
-                'generator': self.cfg['rt_GW_half'],
-                'stitching_retargeting': self.cfg['rt_S_half'],
-                'stitching_retargeting_eye': self.cfg['rt_SE_half'],
-                'stitching_retargeting_lip': self.cfg['rt_SL_half']
+                'feature_extractor': self.cfg['F_rt_half'],
+                'motion_extractor': self.cfg['M_rt_half'],
+                'generator': self.cfg['GW_rt_half'],
+                'stitching_retargeting': self.cfg['S_rt_half'],
+                'stitching_retargeting_eye': self.cfg['SE_rt_half'],
+                'stitching_retargeting_lip': self.cfg['SL_rt_half']
             }
         else:
             self.model_paths = {
-                'feature_extractor': self.cfg['rt_F'],
-                'motion_extractor': self.cfg['rt_M'],
-                'generator': self.cfg['rt_GW'],
-                'stitching_retargeting': self.cfg['rt_S'],
-                'stitching_retargeting_eye': self.cfg['rt_SE'],
-                'stitching_retargeting_lip': self.cfg['rt_SL']
+                'feature_extractor': self.cfg['F_rt'],
+                'motion_extractor': self.cfg['M_rt'],
+                'generator': self.cfg['GW_rt'],
+                'stitching_retargeting': self.cfg['S_rt'],
+                'stitching_retargeting_eye': self.cfg['SE_rt'],
+                'stitching_retargeting_lip': self.cfg['SL_rt']
             }
         self.plugin_path = self.cfg['grid_sample_3d']
         self.load_plugins(TRT_LOGGER)
