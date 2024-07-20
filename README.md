@@ -55,8 +55,7 @@ pretrained_weights
       |
       ├── appearance_feature_extractor.onnx
       ├── motion_extractor.onnx
-      ├── spade_generator.onnx
-      └── warping.onnx
+      ├── generator_warping.onnx
       ├── stitching_retargeting.onnx
       └── stitching_retargeting_eye.onnx
       └── stitching_retargeting_lip.onnx
