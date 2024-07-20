@@ -9,7 +9,7 @@ import yaml
 # Define the URLs for the model files
 MODEL_URLS = {
     'live_portrait': {
-        'grid_sample_3d': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT/resolve/main/libgrid_sample_3d_plugin.so?download=true',
+        'grid_sample_3d': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/libgrid_sample_3d_plugin.so?download=true',
         'F_onnx': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/appearance_feature_extractor.onnx?download=true',
         'M_onnx': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/motion_extractor.onnx?download=true',
         'GW_onnx': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/generator_fix_grid.onnx?download=true',
