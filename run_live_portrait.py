@@ -7,10 +7,10 @@ from LivePortrait.commons import save_config_to_yaml
 warnings.filterwarnings("ignore")
 
 
-def main(video_path, source_img, use_tensorrt, real_time, half):
+def main(video_path, source_img, use_tensorrt, real_time, half_precision):
     cfg_yaml = save_config_to_yaml()
     kwargs = OmegaConf.load(cfg_yaml)
-    live_portrait = EfficientLivePortrait(use_tensorrt, half, **kwargs)
+    live_portrait = EfficientLivePortrait(use_tensorrt, half_precision, **kwargs)
     live_portrait.render(live_portrait, video_path_or_id=video_path, image_path=source_img, real_time=real_time)
 
 
@@ -24,4 +24,4 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--real_time', action='store_true', help='Enable real-time webcam demo')
     args = parser.parse_args()
 
-    main(args.video, args.image, args.run_time, args.half_precision, args.real_time)
+    main(args.video, args.image, args.run_time, args.real_time, args.half_precision)
