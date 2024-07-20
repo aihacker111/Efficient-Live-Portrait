@@ -21,3 +21,4 @@ tyro==0.8.5
 gradio==4.37.1
 tensorrt
 pycuda
+omegaconf

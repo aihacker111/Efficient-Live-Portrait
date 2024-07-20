@@ -56,6 +56,13 @@ class Binding:
 class TensorRTEngine:
     def __init__(self, half, **kwargs):
         self.cfg = kwargs
+        self.cfx = None
+        if kwargs.get("cuda_ctx", None) is None:
+            cuda.init()
+            self.cfx = cuda.Device(0).make_context()
+        else:
+            self.cfx = kwargs.get("cuda_ctx")
+
         if half:
             self.model_paths = {
                 'feature_extractor': self.cfg['F_rt_half'],
@@ -92,7 +99,11 @@ class TensorRTEngine:
     def initialize_engines(self):
         for model_name, model_path in self.model_paths.items():
             engine = self.load_engine(model_path)
+            if engine is None:
+                raise RuntimeError(f"Failed to load engine for {model_name}")
             context = engine.create_execution_context()
+            if context is None:
+                raise RuntimeError(f"Failed to create execution context for {model_name}")
             bindings = [Binding(engine, i) for i in range(engine.num_io_tensors)]
             self.engines[model_name] = engine
             self.contexts[model_name] = context
@@ -142,30 +153,35 @@ class TensorRTEngine:
         if len(inputs) != len(inputs_bindings):
             raise ValueError(f"Number of input arrays does not match number of input bindings for model {model_name}.")
 
-        for i, (input_array, input_binding) in enumerate(zip(inputs, inputs_bindings)):
-            input_array = self.check_input_validity(i, input_array, input_binding)
-            input_array = np.ascontiguousarray(input_array)  # Ensure the input array is contiguous
-            cuda.memcpy_htod(input_binding.device_buffer.ptr, input_array)
-
-        for i in range(engine.num_io_tensors):
-            tensor_name = engine.get_tensor_name(i)
-            if i < len(inputs) and engine.is_shape_inference_io(tensor_name):
-                context.set_tensor_address(tensor_name, inputs[i].ctypes.data)
-            else:
-                context.set_tensor_address(tensor_name, binding_addresses[i])
+        self.cfx.push()  # Push CUDA context
 
         try:
+            for i, (input_array, input_binding) in enumerate(zip(inputs, inputs_bindings)):
+                input_array = self.check_input_validity(i, input_array, input_binding)
+                input_array = np.ascontiguousarray(input_array)  # Ensure the input array is contiguous
+                cuda.memcpy_htod(input_binding.device_buffer.ptr, input_array)
+
+            for i in range(engine.num_io_tensors):
+                tensor_name = engine.get_tensor_name(i)
+                if i < len(inputs) and engine.is_shape_inference_io(tensor_name):
+                    context.set_tensor_address(tensor_name, inputs[i].ctypes.data)
+                else:
+                    context.set_tensor_address(tensor_name, binding_addresses[i])
+
             context.execute_async_v3(self.stream.handle)
             self.stream.synchronize()
+
+            outputs = []
+            for output in outputs_bindings:
+                host_output = np.empty(output.shape, dtype=output.dtype)
+                cuda.memcpy_dtoh(host_output, output.device_buffer.ptr)
+                outputs.append(host_output)
+
         except Exception as e:
             print(f"Error during inference for model {model_name}: {e}")
-            return None, 0
+            outputs = None
 
-        outputs = []
-        for output in outputs_bindings:
-            host_output = np.empty(output.shape, dtype=output.dtype)
-            cuda.memcpy_dtoh(host_output, output.device_buffer.ptr)
-            outputs.append(host_output)
+        self.cfx.pop()  # Pop CUDA context
 
         return outputs
 
@@ -176,8 +192,39 @@ class TensorRTEngine:
         if task not in self.inputs:
             raise ValueError(f"Task {task} not found in the model inputs.")
 
+        # Ensure all inputs are on the same memory type
+        if isinstance(inputs[0], pycuda.gpuarray.GPUArray):
+            # Ensure all inputs are on GPU
+            inputs = [cuda.to_gpu(input_array) if not isinstance(input_array, pycuda.gpuarray.GPUArray) else input_array
+                      for input_array in inputs]
+        else:
+            # Ensure all inputs are on CPU
+            inputs = [input_array.get() if isinstance(input_array, pycuda.gpuarray.GPUArray) else input_array
+                      for input_array in inputs]
+
         inputs = [self.check_input_validity(i, np.array(input_array), self.inputs[task][i])
                   for i, input_array in enumerate(inputs)]
 
         result = self.run_sequential_tasks(task, inputs)
         return result
+
+    def __del__(self):
+        del self.engines
+        del self.contexts
+        del self.bindings
+        del self.binding_addresses
+        del self.inputs
+        del self.outputs
+        del self.stream
+        try:
+            if self.cfx is not None:
+                self.cfx.pop()
+                del self.cfx
+        except Exception as e:
+            print(f"Error during cleanup: {e}")
+
+# Example usage
+# engine = TensorRTEngine(half=True, F_rt_half="path/to/F_rt_half", M_rt_half="path/to/M_rt_half",
+#                         GW_rt_half="path/to/GW_rt_half", S_rt_half="path/to/S_rt_half",
+#                         SE_rt_half="path/to/SE_rt_half", SL_rt_half="path/to/SL_rt_half",
+#                         grid_sample_3d="path/to/grid_sample_3d.so")

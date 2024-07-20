@@ -105,3 +105,4 @@ urllib3==2.2.2
 uvicorn==0.30.1
 watchfiles==0.22.0
 websockets==11.0.3
+omegaconf
