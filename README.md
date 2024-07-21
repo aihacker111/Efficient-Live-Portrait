@@ -76,6 +76,9 @@ pretrained_weights
 ```
 ### 3. Inference and Real-time Demo 🚀
 #### Fast hands-on
+
+TensorRT FP32 is seem small than FP16 so be careful to use both of it, I'm not recommend using ONNX model because it's not still update and fix grid sample or speed 
+
 ```bash
 python run_live_portrait.py -v 'path/to/your/video/driving/or/webcam/id' -i 'path/to/your/image/want/to/animation' -r '/use/it/when/you/want/to/run/real-time/' -e -fp16 
 ```
