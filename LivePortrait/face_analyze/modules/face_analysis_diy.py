@@ -8,6 +8,7 @@ import numpy as np
 from LivePortrait.face_analyze.utils.face_dict import Face
 from LivePortrait.face_analyze.modules.scrfd import SCRFD
 from LivePortrait.face_analyze.modules.landmark_2d106 import Landmark
+from LivePortrait.face_analyze.modules.arc_face import ArcFaceONNX
 
 
 def sort_by_direction(faces, direction: str = 'large-small', face_center=None):
@@ -34,8 +35,9 @@ def sort_by_direction(faces, direction: str = 'large-small', face_center=None):
 
 
 class ModelRouter:
-    def __init__(self, det_path, landmark_106_path):
+    def __init__(self, det_path, rec_path, landmark_106_path):
         self.model_det = SCRFD(det_path)
+        self.model_rec = ArcFaceONNX(rec_path)
         self.model_landmark_106 = Landmark(landmark_106_path)
         self.models = self.router()
 
@@ -48,8 +50,8 @@ class ModelRouter:
 
 
 class FaceAnalysis(ModelRouter):
-    def __init__(self, det_path, landmark_106_path, **kwargs):
-        super().__init__(det_path, landmark_106_path)
+    def __init__(self, det_path, rec_path, landmark_106_path, **kwargs):
+        super().__init__(det_path, rec_path, landmark_106_path)
         self.det_model = self.models['detection']
 
     def prepare(self, ctx_id, det_thresh=0.5, det_size=(640, 640)):
@@ -60,7 +62,7 @@ class FaceAnalysis(ModelRouter):
             else:
                 model.prepare(ctx_id)
 
-    def get(self, img_bgr, **kwargs):
+    def get_detector(self, img_bgr, **kwargs):
         max_num = kwargs.get('max_num', 0)  # the number of the detected faces, 0 means no limit
         flag_do_landmark_2d_106 = kwargs.get('flag_do_landmark_2d_106', True)  # whether to do 106-point detection
         direction = kwargs.get('direction', 'large-small')  # sorting direction
@@ -90,7 +92,31 @@ class FaceAnalysis(ModelRouter):
         ret = sort_by_direction(ret, direction, face_center)
         return ret
 
+    def get_face_id(self, ret_ref, face_db):
+
+        # List to store indices of matching faces
+        matching_indices = []
+
+        # Compare each face in the database
+        for i, face in enumerate(face_db):
+            face_key = f'face_{i}'
+            face_data = face[face_key]
+
+            # Extract features for reference and current face
+            feat_ref = self.model_rec.get(ret_ref['img_crop'])
+            feat_db = self.model_rec.get(face_data['img_crop'])
+
+            # Compute similarity
+            sim = self.model_rec.compute_sim(feat_ref, feat_db)
+            if sim >= 0.28:
+                matching_indices.append(i)
+        # Filter face_db to include only matching faces if there are any matches
+        if matching_indices:
+            filtered_face_db = [face_db[i] for i in matching_indices]
+            return filtered_face_db
+        else:
+            return face_db  # Return the original face_db if no matches are found
+
     def warmup(self):
         img_bgr = np.zeros((512, 512, 3), dtype=np.uint8)
-        self.get(img_bgr)
-
+        self.get_detector(img_bgr)

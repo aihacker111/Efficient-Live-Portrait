@@ -1,18 +1,27 @@
 # Efficient-Live-Portrait
-## 📹 Video Demo
+## 📹 Video Demo for normal mode
  
 
 https://github.com/user-attachments/assets/ac0e92d7-34e1-4402-a202-d06a2e806abe
-     
+
+## 📹 Video Demo for Face-ID mode
++ Single Face Image
++ Through Face-ID adapter
 ## Introduction
 This repo is the optimize task by converted to ONNX and TensorRT models for [LivePortrait: Efficient Portrait Animation with Stitching and Retargeting Control](https://github.com/KwaiVGI/LivePortrait).
 We are actively updating and improving this repository. If you find any bugs or have suggestions, welcome to raise issues or submit pull requests (PR) 💖.
 
-Also we adding feature: Real-Time demo with ONNX models
+Also we adding feature: 
++ Real-Time demo with ONNX models
++ TensorRT runtime with latest Tensorrt version. You should run on Colab, this still can't use on Window
++ Face-ID adapter for control Face animation in the Multiple Faces image you want to do
++ Coming soon for ControlNet Stable Diffusion. Stay tuned
 ## Features
 [✅] 20/07/2024: TensorRT Engine code and Demo
 
-[  ] Convert to CoreML and TFlite for running on mobile
+[✅] 22/07/2024: Support Multiple Faces
+
+[✅] 22/07/2024: Face-ID Adapter for Control Face Animation
 
 [  ] Integrate X-pose TensorRT
 
@@ -77,10 +86,10 @@ pretrained_weights
 ### 3. Inference and Real-time Demo 🚀
 #### Fast hands-on
 
-TensorRT FP32 is seem slower than FP16 but result better than fp16, so be careful to use both of it, I'm not recommend using ONNX model because it's not still update and fix grid sample or speed 
-
++ TensorRT FP32 is seem slower than FP16 but result better than fp16, so be careful to use both of it, I'm not recommend using ONNX model because it's not still update and fix grid sample or speed
++ Also If you want to Quality Result. Please remove FP16, the speed can be slower than fp16 but result is better
 ```bash
-python run_live_portrait.py -v 'path/to/your/video/driving/or/webcam/id' -i 'path/to/your/image/want/to/animation' -r '/use/it/when/you/want/to/run/real-time/' -e -fp16 
+python run_live_portrait.py -v 'path/to/your/video/driving/or/webcam/id' -i 'path/to/your/image/want/to/animation' -ref 'path/the/single/face/image/to/compute/face-id' -r '/use/it/when/you/want/to/run/real-time/' -e -fp16 
 ```
 #### Colab Demo
  Follow in the colab folder

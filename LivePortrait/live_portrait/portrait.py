@@ -7,7 +7,7 @@ import numpy as np
 
 
 class PortraitController(ParsingPaste):
-    def __init__(self, use_tensorrt,half,  **kwargs):
+    def __init__(self, use_tensorrt, half, **kwargs):
         super().__init__()
         self.predictor = EfficientLivePortraitPredictor(use_tensorrt, half, **kwargs)
         self.cfg = kwargs  # Store kwargs as a configuration dictionary
@@ -56,10 +56,30 @@ class PortraitController(ParsingPaste):
         if self.cfg['flag_eye_retargeting'] or self.cfg['flag_lip_retargeting']:
             driving_lmk_lst = cropper.get_retargeting_lmk_info(driving_rgb_lst)
             input_eye_ratio_lst, input_lip_ratio_lst = self.calc_retargeting_ratio(driving_lmk_lst)
-        mask_ori = self.prepare_paste_back(self.cfg['mask_crop'], crop_info['M_c2o'],
+        mask_ori = self.prepare_paste_back(crop_info['M_c2o'],
                                            dsize=(img_rgb.shape[1], img_rgb.shape[0]))
         i_p_paste_lst = []
         return mask_ori, driving_rgb_lst, i_d_lst, i_p_paste_lst, template_lst, n_frames, input_eye_ratio_lst, input_lip_ratio_lst
+
+    def process_multiple_source_motion(self, source_motion, crop_info, cropper):
+        template_lst = None
+        input_eye_ratio_lst = None
+        input_lip_ratio_lst = None
+        driving_rgb_lst = load_driving_info(source_motion)
+        driving_rgb_lst_256 = [cv2.resize(_, (256, 256)) for _ in driving_rgb_lst]
+        i_d_lst = self.prepare_driving_videos(driving_rgb_lst_256, single_image=False)
+        n_frames = i_d_lst.shape[0]
+        for crop_f in crop_info:
+            # Extract face key
+            face_key = list(crop_f.keys())[0]
+            face_data = crop_f[face_key]
+            if self.cfg['flag_eye_retargeting'] or self.cfg['flag_lip_retargeting']:
+                driving_lmk_lst = cropper.get_retargeting_lmk_info(driving_rgb_lst)
+                input_eye_ratio_lst, input_lip_ratio_lst = self.calc_retargeting_ratio(driving_lmk_lst)
+            mask_ori = self.prepare_paste_back(face_data['M_c2o'],
+                                               dsize=(face_data['img_rgb'].shape[1], face_data['img_rgb'].shape[0]))
+            face_data['mask_ori'] = mask_ori
+        return i_d_lst, template_lst, n_frames, input_eye_ratio_lst, input_lip_ratio_lst
 
     def algorithm(self, x_s, x_d_i_info, r_s, x_s_info, lip_delta_before_animation):
         r_d_i = self.get_rotation_matrix(x_d_i_info['pitch'], x_d_i_info['yaw'], x_d_i_info['roll'])
@@ -80,7 +100,8 @@ class PortraitController(ParsingPaste):
             x = cv2.resize(x, (256, 256)) if run_local == False else x
             x = self.prepare_driving_videos([x], single_image)[0]
         inputs = {'img': np.array(x)}
-        outputs = self.predictor.run_time(engine_name='motion_extractor', task='m_session', inputs_onnx=inputs, inputs_tensorrt=[x])
+        outputs = self.predictor.run_time(engine_name='motion_extractor', task='m_session', inputs_onnx=inputs,
+                                          inputs_tensorrt=[x])
         kps_info = {
             'pitch': torch.tensor(outputs[0]),
             'yaw': torch.tensor(outputs[1]),
@@ -106,7 +127,8 @@ class PortraitController(ParsingPaste):
 
     def get_3d_feature(self, source):
         inputs = {'img': np.array(source)}
-        outputs = self.predictor.run_time(engine_name='feature_extractor', task='f_session', inputs_onnx=inputs, inputs_tensorrt=[source])
+        outputs = self.predictor.run_time(engine_name='feature_extractor', task='f_session', inputs_onnx=inputs,
+                                          inputs_tensorrt=[source])
         return outputs[0]
 
     def warp_decode(self, feature_3d, kp_source, kp_driving):

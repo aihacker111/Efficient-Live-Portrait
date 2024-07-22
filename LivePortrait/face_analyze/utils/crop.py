@@ -353,7 +353,7 @@ def _estimate_similar_transform_from_pts(
     return M_INV, M[:2, ...]
 
 
-def crop_image(img, pts: np.ndarray, **kwargs):
+def crop_image(img, pts: np.ndarray, kps, **kwargs):
     dsize = kwargs.get('dsize', 224)
     scale = kwargs.get('scale', 1.5)  # 1.5 | 1.6
     vy_ratio = kwargs.get('vy_ratio', -0.1)  # -0.0625 | -0.1
@@ -372,6 +372,7 @@ def crop_image(img, pts: np.ndarray, **kwargs):
         ret_dct = {
             'M': M[:2, ...],  # from the original image to the cropped image
             'M_o2c': M[:2, ...],  # from the cropped image to the original image
+            'kps': kps,
             'img_crop': None,
             'pt_crop': None,
         }
@@ -386,6 +387,7 @@ def crop_image(img, pts: np.ndarray, **kwargs):
     ret_dct = {
         'M_o2c': M_o2c,  # from the original image to the cropped image 3x3
         'M_c2o': M_c2o,  # from the cropped image to the original image 3x3
+        'kps': kps,
         'img_crop': img_crop,  # the cropped image
         'pt_crop': pt_crop,  # the landmarks of the cropped image
     }

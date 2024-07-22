@@ -32,6 +32,7 @@ MODEL_URLS = {
         'SL_rt_half': 'https://huggingface.co/myn0908/Live-Portrait-TensorRT-FP16/resolve/main/stitching_lip_fp16.engine?download=true'
     },
     'insightface': {
+        'arc_face': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/w600k_r50.onnx?download=true',
         '2d106det': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/2d106det.onnx?download=true',
         'det_10g': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/det_10g.onnx?download=true',
         'landmark': 'https://huggingface.co/myn0908/Live-Portrait-ONNX/resolve/main/landmark.onnx?download=true'
@@ -133,6 +134,7 @@ class Config:
 
     # crop config
     ckpt_landmark: str = model_paths['insightface']['landmark']
+    ckpt_arc_face: str = model_paths['insightface']['arc_face']
     ckpt_landmark_106: str = model_paths['insightface']['2d106det']
     ckpt_det: str = model_paths['insightface']['det_10g']
     ckpt_face: str = face_dir

@@ -2,7 +2,7 @@ from .utils.onnx_driver import ONNXEngine
 import numpy as np
 
 
-class EfficientLivePortraitPredictor(ONNXEngine):
+class EfficientLivePortraitPredictor:
     def __init__(self, use_tensorrt=False, half=False, **kwargs):
         super().__init__()
         self.use_tensorrt = use_tensorrt

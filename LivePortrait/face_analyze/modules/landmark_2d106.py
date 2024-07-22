@@ -77,10 +77,8 @@ class Landmark:
         center = (bbox[2] + bbox[0]) / 2, (bbox[3] + bbox[1]) / 2
         rotate = 0
         _scale = self.input_size[0]  / (max(w, h)*1.5)
-        #print('param:', img.shape, bbox, center, self.input_size, _scale, rotate)
         aimg, M = face_alignment.transform(img, center, self.input_size[0], _scale, rotate)
         input_size = tuple(aimg.shape[0:2][::-1])
-        #assert input_size==self.input_size
         blob = cv2.dnn.blobFromImage(aimg, 1.0/self.input_std, input_size, (self.input_mean, self.input_mean, self.input_mean), swapRB=True)
         pred = self.session.run(self.output_names, {self.input_name : blob})[0][0]
         if pred.shape[0] >= 3000:
