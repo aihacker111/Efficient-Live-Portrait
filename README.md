@@ -6,7 +6,14 @@ https://github.com/user-attachments/assets/ac0e92d7-34e1-4402-a202-d06a2e806abe
 
 ## 📹 Video Demo for Face-ID mode
 + Single Face Image
+  ![368220873_826368889022136_4472311944594836999_n](https://github.com/user-attachments/assets/25851766-a454-4f16-8d44-f63923cdabf2)
+
 + Through Face-ID adapter
+   
+
+https://github.com/user-attachments/assets/197a8d75-3c56-43f5-ac71-e7110d9e53d1
+
+
 ## Introduction
 This repo is the optimize task by converted to ONNX and TensorRT models for [LivePortrait: Efficient Portrait Animation with Stitching and Retargeting Control](https://github.com/KwaiVGI/LivePortrait).
 We are actively updating and improving this repository. If you find any bugs or have suggestions, welcome to raise issues or submit pull requests (PR) 💖.
