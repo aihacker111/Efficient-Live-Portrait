@@ -24,7 +24,7 @@ if __name__ == '__main__':
                         help='Path to the driving video or your webcam id')
     parser.add_argument('-i', '--image', type=str, required=True, help='Path to the source image')
     parser.add_argument('-ref', '--ref_image', type=str, help='Path to the ref image')
-    parser.add_argument('-num', '--max_faces', type=str, required=True, help='Enter number of faces you want to extract in Video Motion')
+    parser.add_argument('-num', '--max_faces', type=str, default=1, required=True, help='Enter number of faces you want to extract in Video Motion')
     parser.add_argument('-e', '--run_time', action='store_true', help='Turn on TensorRT mode')
     parser.add_argument('-fp16', '--half_precision', action='store_true', help='Half Precision on TensorRT mode')
     parser.add_argument('-r', '--real_time', action='store_true', help='Enable real-time webcam demo')
