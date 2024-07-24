@@ -47,9 +47,9 @@ class LandmarkRunner(object):
         out = self.session.run(None, {'input': inp})
         return out
 
-    def run(self, img_rgb: np.ndarray, kps=None, lmk=None):
+    def run(self, img_rgb: np.ndarray, lmk=None):
         if lmk is not None:
-            crop_dct = crop_image(img_rgb, lmk,kps, dsize=self.dsize, scale=1.5, vy_ratio=-0.1)
+            crop_dct = crop_image(img_rgb, lmk, dsize=self.dsize, scale=1.5, vy_ratio=-0.1)
             img_crop_rgb = crop_dct['img_crop']
         else:
             img_crop_rgb = cv2.resize(img_rgb, (self.dsize, self.dsize))

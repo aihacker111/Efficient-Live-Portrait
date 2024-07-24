@@ -182,7 +182,7 @@ def parse_rect_from_landmark(
 
     judge with pts.shape
     """
-    pt2 = parse_pt2_from_pt_x(pts, use_lip=kwargs.get('use_lip', True))
+    pt2 = parse_pt2_from_pt_x(pts, use_lip=True)
 
     uy = pt2[1] - pt2[0]
     l = np.linalg.norm(uy)
@@ -353,7 +353,7 @@ def _estimate_similar_transform_from_pts(
     return M_INV, M[:2, ...]
 
 
-def crop_image(img, pts: np.ndarray, kps, **kwargs):
+def crop_image(img, pts: np.ndarray, **kwargs):
     dsize = kwargs.get('dsize', 224)
     scale = kwargs.get('scale', 1.5)  # 1.5 | 1.6
     vy_ratio = kwargs.get('vy_ratio', -0.1)  # -0.0625 | -0.1
@@ -372,7 +372,6 @@ def crop_image(img, pts: np.ndarray, kps, **kwargs):
         ret_dct = {
             'M': M[:2, ...],  # from the original image to the cropped image
             'M_o2c': M[:2, ...],  # from the cropped image to the original image
-            'kps': kps,
             'img_crop': None,
             'pt_crop': None,
         }
@@ -387,7 +386,6 @@ def crop_image(img, pts: np.ndarray, kps, **kwargs):
     ret_dct = {
         'M_o2c': M_o2c,  # from the original image to the cropped image 3x3
         'M_c2o': M_c2o,  # from the cropped image to the original image 3x3
-        'kps': kps,
         'img_crop': img_crop,  # the cropped image
         'pt_crop': pt_crop,  # the landmarks of the cropped image
     }
@@ -395,27 +393,14 @@ def crop_image(img, pts: np.ndarray, kps, **kwargs):
     return ret_dct
 
 
+def contiguous(obj):
+    if not obj.flags.c_contiguous:
+        obj = obj.copy(order="C")
+    return obj
+
+
 def average_bbox_lst(bbox_lst):
     if len(bbox_lst) == 0:
         return None
     bbox_arr = np.array(bbox_lst)
     return np.mean(bbox_arr, axis=0).tolist()
-
-
-def prepare_paste_back(mask_crop, crop_M_c2o, dsize):
-    """prepare mask for later image paste back
-    """
-    if mask_crop is None:
-        mask_crop = cv2.imread(make_abs_path('./resources/mask_template.png'), cv2.IMREAD_COLOR)
-    mask_ori = _transform_img(mask_crop, crop_M_c2o, dsize)
-    mask_ori = mask_ori.astype(np.float32) / 255.
-    return mask_ori
-
-
-def paste_back(image_to_processed, crop_M_c2o, rgb_ori, mask_ori):
-    """paste back the image
-    """
-    dsize = (rgb_ori.shape[1], rgb_ori.shape[0])
-    result = _transform_img(image_to_processed, crop_M_c2o, dsize=dsize)
-    result = np.clip(mask_ori * result + (1 - mask_ori) * rgb_ori, 0, 255).astype(np.uint8)
-    return result

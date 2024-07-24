@@ -1,5 +1,4 @@
 from .utils.onnx_driver import ONNXEngine
-import numpy as np
 
 
 class EfficientLivePortraitPredictor:

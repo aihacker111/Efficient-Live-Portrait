@@ -2,8 +2,10 @@ import numpy as np
 import cv2
 import os.path as osp
 import os
+import subprocess
 from rich.progress import track
 from .transform_3d_point import Transform3DFunction
+
 cv2.setNumThreads(0)
 cv2.ocl.setUseOpenCL(False)  # NOTE: enforce single thread
 
@@ -38,32 +40,84 @@ class ParsingPaste(Transform3DFunction):
         """paste back the image
         """
         dsize = (rgb_ori.shape[1], rgb_ori.shape[0])
-        result = self._transform_img(image_to_processed, crop_m_c2o, dsize=dsize)
+        result = self._transform_img(image_to_processed, crop_m_c2o, borderMode=None, dsize=dsize)
         result = mask_ori * result + (1 - mask_ori) * rgb_ori
-
+        result = np.clip(result, 0, 255).astype('uint8')
         return result
 
     @staticmethod
     def make_abs_path(fn):
         return osp.join(osp.dirname(osp.realpath(__file__)), fn)
 
+    # @staticmethod
+    # def _transform_img(img, M, dsize, flags=CV2_INTERP, borderMode=None):
+    #     """ conduct similarity or affine transformation to the image, do not do border operation!
+    #     img:
+    #     M: 2x3 matrix or 3x3 matrix
+    #     dsize: target shape (width, height)
+    #     """
+    #     if isinstance(dsize, tuple) or isinstance(dsize, list):
+    #         _dsize = tuple(dsize)
+    #     else:
+    #         _dsize = (dsize, dsize)
+    #
+    #     if borderMode is not None:
+    #         return cv2.warpAffine(img, M[:2, :], dsize=_dsize, flags=flags, borderMode=borderMode,
+    #                               borderValue=(0, 0, 0))
+    #     else:
+    #         return cv2.warpAffine(img, M[:2, :], dsize=_dsize, flags=flags)
     @staticmethod
-    def _transform_img(img, M, dsize, flags=CV2_INTERP, borderMode=None):
-        """ conduct similarity or affine transformation to the image, do not do border operation!
-        img:
-        M: 2x3 matrix or 3x3 matrix
-        dsize: target shape (width, height)
+    def _transform_img(img, M, dsize, scale=1.0, flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT,
+                       borderValue=(0, 0, 0)):
         """
-        if isinstance(dsize, tuple) or isinstance(dsize, list):
-            _dsize = tuple(dsize)
-        else:
-            _dsize = (dsize, dsize)
+        Conduct similarity or affine transformation to the image, with scaling consideration.
 
-        if borderMode is not None:
-            return cv2.warpAffine(img, M[:2, :], dsize=_dsize, flags=flags, borderMode=borderMode,
-                                  borderValue=(0, 0, 0))
+        Parameters:
+        img: Input image.
+        M: 2x3 or 3x3 transformation matrix.
+        dsize: Target shape (width, height).
+        scale: Scale factor for the output image.
+        flags: Interpolation flags (default is cv2.INTER_LINEAR).
+        borderMode: Pixel extrapolation method (default is cv2.BORDER_CONSTANT).
+        borderValue: Value used in case of a constant border (default is (0, 0, 0)).
+
+        Returns:
+        Transformed image.
+        """
+        # Adjust dsize according to the scale factor
+        if isinstance(dsize, (tuple, list)):
+            _dsize = (int(dsize[0] * scale), int(dsize[1] * scale))
         else:
-            return cv2.warpAffine(img, M[:2, :], dsize=_dsize, flags=flags)
+            _dsize = (int(dsize * scale), int(dsize * scale))
+
+        # Perform the transformation
+        if M.shape[0] == 3:  # If 3x3 matrix, use warpPerspective
+            return cv2.warpPerspective(img, M, dsize=_dsize, flags=flags, borderMode=borderMode,
+                                       borderValue=borderValue)
+        else:  # If 2x3 matrix, use warpAffine
+            return cv2.warpAffine(img, M[:2, :], dsize=_dsize, flags=flags, borderMode=borderMode,
+                                  borderValue=borderValue)
+
+    def exec_cmd(self, cmd):
+        return subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    def add_audio_to_video(self, silent_video_path: str, audio_video_path: str, output_video_path: str):
+        cmd = [
+            'ffmpeg',
+            '-y',
+            '-i', f'"{silent_video_path}"',
+            '-i', f'"{audio_video_path}"',
+            '-map', '0:v',
+            '-map', '1:a',
+            '-c:v', 'copy',
+            '-shortest',
+            f'"{output_video_path}"'
+        ]
+
+        try:
+            self.exec_cmd(' '.join(cmd))
+        except subprocess.CalledProcessError as e:
+            print(f"Error occurred: {e}")
 
     @staticmethod
     def concat_frames(i_p_lst, driving_rgb_lst, img_rgb):

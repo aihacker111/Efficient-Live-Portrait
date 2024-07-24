@@ -72,7 +72,9 @@ class SCRFD:
         if self.session is None:
             assert self.model_file is not None
             assert osp.exists(self.model_file)
-            self.session = onnxruntime.InferenceSession(self.model_file, None)
+            so = onnxruntime.SessionOptions()
+            so.log_severity_level = 3
+            self.session = onnxruntime.InferenceSession(self.model_file, so)
         self.center_cache = {}
         self.nms_thresh = 0.4
         self.det_thresh = 0.5
