@@ -162,7 +162,7 @@ class FaceCropper:
 
     def crop_source_video(self,
                           driving_video,
-                          max_faces=2,
+                          max_faces,
                           **kwargs):
         # os.makedirs('/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/colab/img_crop', exist_ok=True)
         source_rgb_lst, fps = self.load_video(driving_video)

@@ -30,6 +30,8 @@ Also we adding feature:
 
 [✅] 22/07/2024: Face-ID Adapter for Control Face Animation
 
+[✅] 24/07/2024: Multiple Face motion in Video for animation multiples Face in image
+
 [  ] Integrate X-pose TensorRT
 
 [  ] Integrate SadTalker with Efficient Live Portrait for generate realistic video
@@ -95,8 +97,13 @@ pretrained_weights
 
 + TensorRT FP32 is seem slower than FP16 but result better than fp16, so be careful to use both of it, I'm not recommend using ONNX model because it's not still update and fix grid sample or speed
 + Also If you want to Quality Result. Please remove FP16, the speed can be slower than fp16 but result is better
+For run Face-ID mode:
 ```bash
-python run_live_portrait.py -v 'path/to/your/video/driving/or/webcam/id' -i 'path/to/your/image/want/to/animation' -ref 'path/the/single/face/image/to/compute/face-id' -r '/use/it/when/you/want/to/run/real-time/' -e -fp16 
+python run_live_portrait.py -v 'path/to/your/video/driving/or/webcam/id' -i 'path/to/your/image/want/to/animation' -ref 'path/the/single/face/image/to/compute/face-id' -r '/use/it/when/you/want/to/run/real-time/' -e -fp16 --use_face_id 
+```
+For run Multiple Face Motion mode:
+```bash
+python run_live_portrait.py -v 'path/to/your/video/driving/or/webcam/id' -i 'path/to/your/image/want/to/animation'  -r '/use/it/when/you/want/to/run/real-time/' -e  
 ```
 #### Colab Demo
  Follow in the colab folder

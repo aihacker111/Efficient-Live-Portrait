@@ -212,7 +212,7 @@ class EfficientLivePortrait(PortraitController):
 
         return i_p_lst, i_p_paste_lst, original_fps
 
-    def render(self, video_path_or_id, image_path, ref_img, real_time=False):
+    def render(self, video_path_or_id, image_path, ref_img, max_faces, real_time=False):
         """
         Video_path_or_id is use for 2 process, please make sure video_id only use for real-time demo
         """
@@ -241,7 +241,7 @@ class EfficientLivePortrait(PortraitController):
         else:
             crop_infos = self.prepare_multiple_portrait(source_image_path=image_path, ref_img=ref_img)
             source_motion_dict = self.process_multiple_source_motion(
-                video_path_or_id, crop_infos, self.cropper)
+                video_path_or_id, crop_infos, max_faces, self.cropper)
             _, i_p_paste_lst, original_fps = self.generate(source_motion_dict)
             self.mkdir('animations')
 
