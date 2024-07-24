@@ -1,16 +1,18 @@
 from LivePortrait.commons.utils.utils import load_driving_info
 from .portrait_output import ParsingPaste
+from ..face_analyze import FaceCropper
 from LivePortrait.commons import EfficientLivePortraitPredictor
 import cv2
 import torch
 import numpy as np
 
 
-class PortraitController(ParsingPaste):
+class PortraitController(ParsingPaste, FaceCropper):
     def __init__(self, use_tensorrt, half, **kwargs):
         super().__init__()
         self.predictor = EfficientLivePortraitPredictor(use_tensorrt, half, **kwargs)
-        self.cfg = kwargs  # Store kwargs as a configuration dictionary
+        self.cropper = FaceCropper(**kwargs)
+        self.cfg = kwargs
 
     def prepare_source_image(self, img: np.ndarray) -> torch.Tensor:
         h, w = img.shape[:2]
@@ -65,21 +67,59 @@ class PortraitController(ParsingPaste):
         template_lst = None
         input_eye_ratio_lst = None
         input_lip_ratio_lst = None
-        driving_rgb_lst = load_driving_info(source_motion)
-        driving_rgb_lst_256 = [cv2.resize(_, (256, 256)) for _ in driving_rgb_lst]
-        i_d_lst = self.prepare_driving_videos(driving_rgb_lst_256, single_image=False)
-        n_frames = i_d_lst.shape[0]
-        for crop_f in crop_info:
-            # Extract face key
-            face_key = list(crop_f.keys())[0]
-            face_data = crop_f[face_key]
-            if self.cfg['flag_eye_retargeting'] or self.cfg['flag_lip_retargeting']:
-                driving_lmk_lst = cropper.get_retargeting_lmk_info(driving_rgb_lst)
-                input_eye_ratio_lst, input_lip_ratio_lst = self.calc_retargeting_ratio(driving_lmk_lst)
-            mask_ori = self.prepare_paste_back(face_data['M_c2o'],
-                                               dsize=(face_data['img_rgb'].shape[1], face_data['img_rgb'].shape[0]))
-            face_data['mask_ori'] = mask_ori
-        return i_d_lst, template_lst, n_frames, input_eye_ratio_lst, input_lip_ratio_lst
+        cropped_face_motion_info = self.cropper.crop_source_video(source_motion)
+        result_list = []
+
+        # Iterate over the faces in crop_info and match with motion data
+        for face_index, crop_f in enumerate(crop_info):
+            # Iterate over all face keys in the current crop_f
+            for face_key in crop_f.keys():
+                face_data = crop_f[face_key]
+
+                # Check if there's corresponding motion data
+                if face_index < len(cropped_face_motion_info):
+                    crop_face_motion = cropped_face_motion_info[face_index]
+
+                    # Iterate over all motion keys to find the corresponding data
+                    for motion_key in crop_face_motion.keys():
+                        motion_data = crop_face_motion[motion_key]
+
+                        # Update face_data with motion data
+                        # face_data['frame_crop_lst'] = motion_data['frame_crop_lst']
+                        # face_data['M_c2o_lst'] = motion_data['M_c2o_lst']
+                        n_frames = len(motion_data['frame_crop_lst'])
+                        original_fps = motion_data['fps']
+                        # Resize frames for the current face
+                        # driving_rgb_lst_256 = [cv2.resize(frame, (256, 256)) for frame in face_data['frame_crop_lst']]
+                        driving_rgb_lst_256 = motion_data['frame_crop_lst']
+                        # Prepare driving videos for the current face
+                        i_d_lst = self.prepare_driving_videos(driving_rgb_lst_256, single_image=False)
+
+                        # Calculate retargeting ratios if needed
+                        if self.cfg['flag_eye_retargeting'] or self.cfg['flag_lip_retargeting']:
+                            driving_lmk_lst = cropper.get_retargeting_lmk_info(motion_data['frame_crop_lst'])
+                            input_eye_ratio_lst, input_lip_ratio_lst = self.calc_retargeting_ratio(driving_lmk_lst)
+
+                        # Prepare mask for the current face
+                        mask_ori = self.prepare_paste_back(face_data['M_c2o'],
+                                                           dsize=(face_data['img_rgb'].shape[1],
+                                                                  face_data['img_rgb'].shape[0]))
+                        face_data['mask_ori'] = mask_ori
+
+                        # Update result list with combined face_motion_{face_index} and face_{face_index}
+                        result_list.append({
+                            f"face_motion_{face_index}": {
+                                'fps': original_fps,
+                                'i_d_lst': i_d_lst,
+                                'template_lst': template_lst,
+                                'n_frames': n_frames,
+                                'input_eye_ratio_lst': input_eye_ratio_lst,
+                                'input_lip_ratio_lst': input_lip_ratio_lst,
+                            },
+                            f"face_image_{face_index}": face_data  # Store the face data
+                        })
+
+        return result_list
 
     def algorithm(self, x_s, x_d_i_info, r_s, x_s_info, lip_delta_before_animation):
         r_d_i = self.get_rotation_matrix(x_d_i_info['pitch'], x_d_i_info['yaw'], x_d_i_info['roll'])

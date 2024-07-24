@@ -172,8 +172,7 @@ def load_img_online(obj, mode="bgr", **kwargs):
         raise Exception(f"Unknown mode {mode}")
 
 
-def images2video(images, wfp, **kwargs):
-    fps = kwargs.get('fps', 30)
+def images2video(images, wfp, video_path_original, wfp_audio, fps, add_video_func, **kwargs):
     video_format = kwargs.get('format', 'mp4')  # default is mp4 format
     codec = kwargs.get('codec', 'libx264')  # default is libx264 encoding
     quality = kwargs.get('quality')  # video quality
@@ -196,7 +195,5 @@ def images2video(images, wfp, **kwargs):
             writer.append_data(images[i])
 
     writer.close()
-
-    # print(f':smiley: Dump to {wfp}\n', style="bold green")
-    print(f'Dump to {wfp}\n')
-    return wfp
+    add_video_func(wfp, video_path_original, output_video_path=wfp_audio)
+    print(f'Dump to {wfp_audio}\n')

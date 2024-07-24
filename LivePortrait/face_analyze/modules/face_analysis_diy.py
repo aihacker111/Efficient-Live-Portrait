@@ -93,7 +93,8 @@ class FaceAnalysis(ModelRouter):
         return ret
 
     def get_face_id(self, ret_ref, face_db):
-
+        if ret_ref is None:
+            return face_db
         # List to store indices of matching faces
         matching_indices = []
 
