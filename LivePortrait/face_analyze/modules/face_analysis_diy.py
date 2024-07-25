@@ -54,7 +54,7 @@ class FaceAnalysis(ModelRouter):
         super().__init__(det_path, rec_path, landmark_106_path)
         self.det_model = self.models['detection']
 
-    def prepare(self, ctx_id, det_thresh=0.5, det_size=(640, 640)):
+    def prepare(self, ctx_id, det_thresh=0.15, det_size=(640, 640)):
         assert det_size is not None
         for task_name, model in self.models.items():
             if task_name == 'detection':

@@ -151,7 +151,8 @@ class EfficientLivePortrait(PortraitController):
                 if self.config['flag_relative']:
                     r_new = (r_d_i @ r_d_0.permute(0, 2, 1)) @ face_data['r_s']
                     delta_new = face_data['x_s_info']['exp'] + (x_d_i_info['exp'] - x_d_0_info['exp'])
-                    scale_new = face_data['x_s_info']['scale'] if self.cropping_video else face_data['x_s_info']['scale'] * (x_d_i_info['scale'] / x_d_0_info['scale'])
+                    scale_new = face_data['x_s_info']['scale']
+                    # if self.cropping_video else face_data['x_s_info']['scale'] * (x_d_i_info['scale'] / x_d_0_info['scale'])
                     t_new = face_data['x_s_info']['t'] + (x_d_i_info['t'] - x_d_0_info['t'])
                 else:
                     r_new = r_d_i
@@ -245,4 +246,5 @@ class EfficientLivePortrait(PortraitController):
 
             wfp = osp.join('animations', f'{basename(image_path)}--{basename(video_path_or_id)}.mp4')
             wfp_audio = osp.join('animations', f'{basename(image_path)}--{basename(video_path_or_id)}_audio.mp4')
-            images2video(i_p_paste_lst, wfp=wfp, video_path_original=video_path_or_id, wfp_audio=wfp_audio, fps=original_fps, add_video_func=self.add_audio_to_video)
+            images2video(i_p_paste_lst, wfp=wfp, video_path_original=video_path_or_id, wfp_audio=wfp_audio,
+                         fps=original_fps, add_video_func=self.add_audio_to_video)
