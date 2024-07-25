@@ -63,11 +63,14 @@ class PortraitController(ParsingPaste, FaceCropper):
         i_p_paste_lst = []
         return mask_ori, driving_rgb_lst, i_d_lst, i_p_paste_lst, template_lst, n_frames, input_eye_ratio_lst, input_lip_ratio_lst
 
-    def process_multiple_source_motion(self, source_motion, crop_info, max_faces, cropper):
+    def process_multiple_source_motion(self, source_motion, crop_info, max_faces, cropper, cropping_video):
         template_lst = None
         input_eye_ratio_lst = None
         input_lip_ratio_lst = None
-        cropped_face_motion_info = self.cropper.crop_source_video(source_motion, max_faces)
+        if cropping_video:
+            cropped_face_motion_info = self.cropper.crop_source_video(source_motion, max_faces)
+        else:
+            cropped_face_motion_info = self.cropper.calc_lmks_from_cropped_video(source_motion)
         result_list = []
 
         # Iterate over the faces in crop_info and match with motion data

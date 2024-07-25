@@ -357,7 +357,6 @@ def crop_image(img, pts: np.ndarray, **kwargs):
     dsize = kwargs.get('dsize', 224)
     scale = kwargs.get('scale', 1.5)  # 1.5 | 1.6
     vy_ratio = kwargs.get('vy_ratio', -0.1)  # -0.0625 | -0.1
-
     M_INV, _ = _estimate_similar_transform_from_pts(
         pts,
         dsize=dsize,

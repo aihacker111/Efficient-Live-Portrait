@@ -7,9 +7,10 @@ from LivePortrait.live_portrait import PortraitController
 
 
 class EfficientLivePortrait(PortraitController):
-    def __init__(self, use_tensorrt, half, **kwargs):
+    def __init__(self, use_tensorrt, half, cropping_video, **kwargs):
         super().__init__(use_tensorrt, half, **kwargs)
         self.config = kwargs
+        self.cropping_video = cropping_video
 
     def prepare_multiple_portrait(self, source_image_path, ref_img):
         # Load and preprocess source image
@@ -136,7 +137,6 @@ class EfficientLivePortrait(PortraitController):
                 face_data = face_image_data[face_key]
                 motion_key = f"face_motion_{face_index}"
                 motion_data = face_motion_data[motion_key]
-
                 # Extract motion data for the current frame
                 i_d_i = motion_data['i_d_lst'][i]
                 x_d_i_info = self.get_kp_info(i_d_i, face_data['x_s'], face_data['r_s'], face_data['x_s_info'],
@@ -151,7 +151,7 @@ class EfficientLivePortrait(PortraitController):
                 if self.config['flag_relative']:
                     r_new = (r_d_i @ r_d_0.permute(0, 2, 1)) @ face_data['r_s']
                     delta_new = face_data['x_s_info']['exp'] + (x_d_i_info['exp'] - x_d_0_info['exp'])
-                    scale_new = face_data['x_s_info']['scale'] * (x_d_i_info['scale'] / x_d_0_info['scale'])
+                    scale_new = face_data['x_s_info']['scale'] if self.cropping_video else face_data['x_s_info']['scale'] * (x_d_i_info['scale'] / x_d_0_info['scale'])
                     t_new = face_data['x_s_info']['t'] + (x_d_i_info['t'] - x_d_0_info['t'])
                 else:
                     r_new = r_d_i
@@ -206,13 +206,11 @@ class EfficientLivePortrait(PortraitController):
 
                 img_rgb = self.paste_back(i_p_i, face_data['M_c2o'], img_rgb, face_data['mask_ori'])
 
-            interpolated_img_rgb = cv2.addWeighted(img_rgb, 0.5, img_rgb, 0.5, 0)
-            i_p_paste_lst.append(interpolated_img_rgb)
-            # i_p_paste_lst.append(img_rgb)
+                i_p_paste_lst.append(img_rgb)
 
         return i_p_lst, i_p_paste_lst, original_fps
 
-    def render(self, video_path_or_id, image_path, ref_img, max_faces, real_time=False):
+    def render(self, video_path_or_id, image_path, ref_img, max_faces, real_time):
         """
         Video_path_or_id is use for 2 process, please make sure video_id only use for real-time demo
         """
@@ -241,7 +239,7 @@ class EfficientLivePortrait(PortraitController):
         else:
             crop_infos = self.prepare_multiple_portrait(source_image_path=image_path, ref_img=ref_img)
             source_motion_dict = self.process_multiple_source_motion(
-                video_path_or_id, crop_infos, max_faces, self.cropper)
+                video_path_or_id, crop_infos, max_faces, self.cropper, cropping_video=self.cropping_video)
             _, i_p_paste_lst, original_fps = self.generate(source_motion_dict)
             self.mkdir('animations')
 

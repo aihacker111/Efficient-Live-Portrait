@@ -1,6 +1,6 @@
 # coding: utf-8
 from LivePortrait.face_analyze.modules import FaceAnalysis, LandmarkRunner
-from LivePortrait.commons.utils.utils import load_image_rgb
+from LivePortrait.commons.utils.utils import load_image_rgb, resize_to_limit
 from LivePortrait.face_analyze.utils.crop import crop_image, contiguous
 import numpy as np
 import os.path as osp
@@ -166,6 +166,9 @@ class FaceCropper:
                           **kwargs):
         # os.makedirs('/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/colab/img_crop', exist_ok=True)
         source_rgb_lst, fps = self.load_video(driving_video)
+        source_rgb_lst = [resize_to_limit(img, 1280, 2) for img in
+                          source_rgb_lst]
+
         """Tracking based landmarks/alignment and cropping"""
         trajectory_dict = {}
         direction = kwargs.get("direction", "large-small")
@@ -176,7 +179,7 @@ class FaceCropper:
                     contiguous(frame_rgb[..., ::-1]),
                     flag_do_landmark_2d_106=True,
                     direction=direction,
-                    max_face_num=max_faces,
+                    max_face_num=0,
                 )
                 for face_id, src_face in enumerate(src_faces[:max_faces]):
                     lmk = src_face.landmark_2d_106
@@ -232,6 +235,50 @@ class FaceCropper:
                     "frame_crop_lst": trajectory.frame_rgb_crop_lst,
                     "lmk_crop_lst": trajectory.lmk_crop_lst,
                     "M_c2o_lst": trajectory.M_c2o_lst,
+                }
+            } for face_id, trajectory in trajectory_dict.items()
+        ]
+
+    def calc_lmks_from_cropped_video(self, driving_video, **kwargs):
+        """Tracking based landmarks/alignment and cropping"""
+        source_rgb_lst, fps = self.load_video(driving_video)
+        source_rgb_lst = [resize_to_limit(img, 1280, 2) for img in source_rgb_lst]
+        trajectory = Trajectory()
+        trajectory_dict = {}
+        direction = kwargs.get("direction", "large-small")
+
+        for idx, frame_rgb in tqdm(enumerate(source_rgb_lst), total=len(source_rgb_lst), desc="Processing Frames"):
+            if idx == 0 or all(traj.start == -1 for traj in trajectory_dict.values()):
+                src_face = self.face_analysis_wrapper.get_detector(
+                    contiguous(frame_rgb[..., ::-1]),
+                    flag_do_landmark_2d_106=True,
+                    direction=direction,
+                    max_face_num=0,
+                )
+                if len(src_face) == 0:
+                    print(f"No face detected in the frame #{idx}")
+                    raise Exception(f"No face detected in the frame #{idx}")
+                elif len(src_face) > 1:
+                    print(
+                        f"More than one face detected in the driving frame_{idx}, only pick one face by rule {direction}.")
+                src_face = src_face[0]
+                lmk = src_face.landmark_2d_106
+                lmk = self.landmark_runner.run(frame_rgb, lmk)
+                trajectory.start, trajectory.end = idx, idx
+                trajectory.lmk_lst.append(lmk)
+                trajectory_dict[0] = trajectory
+            else:
+                lmk = self.landmark_runner.run(frame_rgb, trajectory.lmk_lst[-1]['pts'])
+                trajectory.end = idx
+                trajectory.lmk_lst.append(lmk)
+            trajectory.frame_rgb_crop_lst.append(cv2.resize(frame_rgb, (256, 256)))
+        return [
+            {
+                f"face_control_{face_id}": {
+                    "fps": fps,
+                    "frame_crop_lst": trajectory.frame_rgb_crop_lst,  # Empty list in this case
+                    "lmk_crop_lst": trajectory.lmk_lst,  # Using lmk_lst as lmk_crop_lst
+                    "M_c2o_lst": trajectory.M_c2o_lst,  # Empty list in this case
                 }
             } for face_id, trajectory in trajectory_dict.items()
         ]
