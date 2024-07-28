@@ -1,3 +1,7 @@
+# coding: utf-8
+# Author: Vo Nguyen An Tin
+# Email: tinprocoder0908@gmail.com
+
 from LivePortrait import EfficientLivePortrait
 from LivePortrait.commons import save_config_to_yaml
 import argparse

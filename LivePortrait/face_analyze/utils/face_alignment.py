@@ -1,3 +1,7 @@
+# coding: utf-8
+# Author: Vo Nguyen An Tin
+# Email: tinprocoder0908@gmail.com
+
 import cv2
 import numpy as np
 from skimage import transform as trans

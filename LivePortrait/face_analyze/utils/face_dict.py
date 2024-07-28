@@ -1,4 +1,7 @@
-import numpy as np
+# coding: utf-8
+# Author: Vo Nguyen An Tin
+# Email: tinprocoder0908@gmail.com
+
 from numpy.linalg import norm as l2norm
 
 

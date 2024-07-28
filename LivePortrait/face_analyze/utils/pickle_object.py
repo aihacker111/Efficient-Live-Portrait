@@ -1,5 +1,7 @@
-import cv2
-import os
+# coding: utf-8
+# Author: Vo Nguyen An Tin
+# Email: tinprocoder0908@gmail.com
+
 import os.path as osp
 from pathlib import Path
 import pickle

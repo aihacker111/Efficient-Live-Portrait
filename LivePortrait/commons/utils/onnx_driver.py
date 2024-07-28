@@ -1,6 +1,8 @@
+# coding: utf-8
+# Author: Vo Nguyen An Tin
+# Email: tinprocoder0908@gmail.com
+
 import onnxruntime as ort
-import torch
-import numpy as np
 from typing import Dict
 
 

@@ -1,8 +1,11 @@
+# coding: utf-8
+# Author: Vo Nguyen An Tin
+# Email: tinprocoder0908@gmail.com
+
 import numpy as np
 import cv2
 import onnx
 import onnxruntime
-from ..utils import face_alignment
 
 
 __all__ = [

@@ -1,4 +1,6 @@
 # coding: utf-8
+# Author: Vo Nguyen An Tin
+# Email: tinprocoder0908@gmail.com
 
 """
 utility functions and classes to handle feature extraction and model loading

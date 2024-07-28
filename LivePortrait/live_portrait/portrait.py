@@ -1,4 +1,7 @@
-from LivePortrait.commons.utils.utils import load_driving_info
+# coding: utf-8
+# Author: Vo Nguyen An Tin
+# Email: tinprocoder0908@gmail.com
+
 from .portrait_output import ParsingPaste
 from ..face_analyze import FaceCropper
 from LivePortrait.commons import EfficientLivePortraitPredictor
@@ -47,24 +50,27 @@ class PortraitController(ParsingPaste, FaceCropper):
             y = torch.from_numpy(y).permute(0, 4, 3, 1, 2)
         return y
 
-    def process_source_motion(self, img_rgb, source_motion, crop_info, cropper):
+    def process_source_motion(self, img_rgb, source_motion, crop_info, cropper, automatic_cropping_video):
         template_lst = None
         input_eye_ratio_lst = None
         input_lip_ratio_lst = None
         mask_origins = []
-        driving_rgb_lst = load_driving_info(source_motion)
-        driving_rgb_lst_256 = [cv2.resize(_, (256, 256)) for _ in driving_rgb_lst]
+        if automatic_cropping_video:
+            driving_rgb_lst_256, fps = self.cropper.crop_source_video(source_motion, max_faces=1, use_for_vid2vid=True)
+        else:
+            driving_rgb_lst_256, fps = self.cropper.calc_lmks_from_cropped_video(source_motion, use_for_vid2vid=True)
+
         i_d_lst = self.prepare_driving_videos(driving_rgb_lst_256, single_image=False)
         n_frames = i_d_lst.shape[0]
         if self.cfg['flag_eye_retargeting'] or self.cfg['flag_lip_retargeting']:
-                driving_lmk_lst = cropper.get_retargeting_lmk_info(driving_rgb_lst)
-                input_eye_ratio_lst, input_lip_ratio_lst = self.calc_retargeting_ratio(driving_lmk_lst)
+            driving_lmk_lst = cropper.get_retargeting_lmk_info(driving_rgb_lst_256)
+            input_eye_ratio_lst, input_lip_ratio_lst = self.calc_retargeting_ratio(driving_lmk_lst)
         for img, crop_inf in zip(img_rgb, crop_info):
             mask_ori = self.prepare_paste_back(crop_inf['M_c2o'],
                                                dsize=(img.shape[1], img.shape[0]))
             mask_origins.append(mask_ori)
         i_p_paste_lst = []
-        return mask_origins, driving_rgb_lst, i_d_lst, i_p_paste_lst, template_lst, n_frames, input_eye_ratio_lst, input_lip_ratio_lst
+        return fps, mask_origins, driving_rgb_lst_256, i_d_lst, i_p_paste_lst, template_lst, n_frames, input_eye_ratio_lst, input_lip_ratio_lst
 
     def process_multiple_source_motion(self, source_motion, crop_info, max_faces, cropper, cropping_video):
         template_lst = None

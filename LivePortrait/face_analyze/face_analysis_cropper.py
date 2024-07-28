@@ -1,4 +1,7 @@
 # coding: utf-8
+# Author: Vo Nguyen An Tin
+# Email: tinprocoder0908@gmail.com
+
 from LivePortrait.face_analyze.modules import FaceAnalysis, LandmarkRunner
 from LivePortrait.commons.utils.utils import load_image_rgb, resize_to_limit
 from LivePortrait.face_analyze.utils.crop import crop_image, contiguous
@@ -163,16 +166,16 @@ class FaceCropper:
     def crop_source_video(self,
                           driving_video,
                           max_faces,
+                          use_for_vid2vid=False,
                           **kwargs):
         # os.makedirs('/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/colab/img_crop', exist_ok=True)
         source_rgb_lst, fps = self.load_video(driving_video)
         source_rgb_lst = [resize_to_limit(img, 1280, 2) for img in
                           source_rgb_lst]
-
         """Tracking based landmarks/alignment and cropping"""
         trajectory_dict = {}
         direction = kwargs.get("direction", "large-small")
-
+        trajectory = Trajectory()
         for idx, frame_rgb in tqdm(enumerate(source_rgb_lst), total=len(source_rgb_lst), desc="Processing Frames"):
             if idx == 0 or all(traj.start == -1 for traj in trajectory_dict.values()):
                 src_faces = self.face_analysis_wrapper.get_detector(
@@ -184,7 +187,6 @@ class FaceCropper:
                 for face_id, src_face in enumerate(src_faces[:max_faces]):
                     lmk = src_face.landmark_2d_106
                     lmk = self.landmark_runner.run(frame_rgb, lmk)
-                    trajectory = Trajectory()
                     trajectory.start, trajectory.end = idx, idx
                     trajectory.lmk_lst.append(lmk)
                     trajectory_dict[face_id] = trajectory
@@ -228,6 +230,8 @@ class FaceCropper:
                     trajectory.lmk_crop_lst.append(ret_dct["lmk_crop_256x256"])
                     trajectory.M_c2o_lst.append(ret_dct['M_c2o'])
 
+        if use_for_vid2vid:
+            return trajectory.frame_rgb_crop_lst, fps
         return [
             {
                 f"face_control_{face_id}": {
@@ -239,7 +243,7 @@ class FaceCropper:
             } for face_id, trajectory in trajectory_dict.items()
         ]
 
-    def calc_lmks_from_cropped_video(self, driving_video, **kwargs):
+    def calc_lmks_from_cropped_video(self, driving_video, use_for_vid2vid=False, **kwargs):
         """Tracking based landmarks/alignment and cropping"""
         source_rgb_lst, fps = self.load_video(driving_video)
         source_rgb_lst = [resize_to_limit(img, 1280, 2) for img in source_rgb_lst]
@@ -272,6 +276,8 @@ class FaceCropper:
                 trajectory.end = idx
                 trajectory.lmk_lst.append(lmk)
             trajectory.frame_rgb_crop_lst.append(cv2.resize(frame_rgb, (256, 256)))
+        if use_for_vid2vid:
+            return trajectory.frame_rgb_crop_lst, fps
         return [
             {
                 f"face_control_{face_id}": {

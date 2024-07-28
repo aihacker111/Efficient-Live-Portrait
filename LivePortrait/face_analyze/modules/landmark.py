@@ -1,4 +1,6 @@
 # coding: utf-8
+# Author: Vo Nguyen An Tin
+# Email: tinprocoder0908@gmail.com
 
 import os.path as osp
 import cv2; cv2.setNumThreads(0); cv2.ocl.setUseOpenCL(False)

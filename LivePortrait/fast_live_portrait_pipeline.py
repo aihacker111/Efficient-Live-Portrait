@@ -1,8 +1,12 @@
+# coding: utf-8
+# Author: Vo Nguyen An Tin
+# Email: tinprocoder0908@gmail.com
+
 import cv2
 import numpy as np
 import os.path as osp
 from tqdm import tqdm
-from LivePortrait.commons import load_image_rgb, resize_to_limit, basename, images2video, load_driving_info
+from LivePortrait.commons import load_image_rgb, resize_to_limit, basename, images2video
 from LivePortrait.live_portrait import PortraitController
 
 
@@ -22,9 +26,12 @@ class EfficientLivePortrait(PortraitController):
         x_s_lst = []
         img_crop_256x256_lst = []
         img_rgb_lst = []
-        source_frame_rgb = load_driving_info(source_video_path)
+        if self.cropping_video:
+            source_frame_rgb, _ = self.cropper.crop_source_video(source_video_path, max_faces=1, use_for_vid2vid=True)
+        else:
+            source_frame_rgb, _ = self.cropper.calc_lmks_from_cropped_video(source_video_path, use_for_vid2vid=True)
+
         for img_rgb in source_frame_rgb:
-            img_rgb = resize_to_limit(img_rgb, 1280, 2)
             crop_info = self.cropper.crop_single_image(img_rgb)
             source_lmk = crop_info['lmk_crop']
             _, img_crop_256x256 = crop_info['img_crop'], crop_info['img_crop_256x256']
@@ -163,7 +170,7 @@ class EfficientLivePortrait(PortraitController):
                        x_s_lst, x_c_s_lst, f_s_lst, r_s_lst, x_s_info_lst, c_d_eyes_lst,
                        c_d_lip_lst, lip_delta_before_animations):
         i_p_lst = []
-        for i in tqdm(range(n_frame), desc='🚀Animating...', total=n_frame):
+        for i in tqdm(range(n_frame), desc='Animating --> 🚀🚀🚀', total=n_frame):
             j = i % source_frames  # Cycle through source frames
 
             i_d_i = i_d_lst[i]
@@ -263,7 +270,7 @@ class EfficientLivePortrait(PortraitController):
         n_frames = next(iter(face_motion_data.values()))['n_frames']
         original_fps = next(iter(face_motion_data.values()))['fps']
         # Process each frame
-        for i in tqdm(range(n_frames), desc='Animating...', total=n_frames):
+        for i in tqdm(range(n_frames), desc='Animating --> 🚀🚀🚀', total=n_frames):
             img_rgb = next(iter(face_image_data.values()))['img_rgb']
             for face_key in face_image_data.keys():
                 face_index = int(face_key.split('_')[-1])  # Extract face_index from key
@@ -385,10 +392,10 @@ class EfficientLivePortrait(PortraitController):
             source_frames, source_lmk_lst, x_c_s_lst, f_s_lst, x_s_lst, r_s_lst, x_s_info_lst, \
                 img_rgb_lst, _, \
                 crop_info_lst, lip_delta_before_animations = self.prepare_video_portrait(source_video_path)
-            mask_origins, _, i_d_lst, i_p_paste_lst, _, \
+            fps, mask_origins, _, i_d_lst, i_p_paste_lst, _, \
                 n_frames, \
                 input_eye_ratio_lst, input_lip_ratio_lst = self.process_source_motion(img_rgb_lst, video_path_or_id,
-                                                                                      crop_info_lst, self.cropper)
+                                                                                      crop_info_lst, self.cropper, automatic_cropping_video=self.cropping_video)
             i_p_paste_lst = self.generate_video(i_p_paste_lst, source_frames, source_lmk_lst, n_frames, crop_info_lst, img_rgb_lst,
                                                 mask_origins, i_d_lst, x_s_lst, x_c_s_lst, f_s_lst, r_s_lst,
                                                 x_s_info_lst, input_eye_ratio_lst, input_lip_ratio_lst,
@@ -398,4 +405,4 @@ class EfficientLivePortrait(PortraitController):
             wfp = osp.join('animations', f'{basename(source_video_path)}--{basename(video_path_or_id)}_vid2vid.mp4')
             wfp_audio = osp.join('animations', f'{basename(source_video_path)}--{basename(video_path_or_id)}_vid2vid_audio.mp4')
             images2video(i_p_paste_lst, wfp=wfp, video_path_original=video_path_or_id, wfp_audio=wfp_audio,
-                         fps=30, add_video_func=self.add_audio_to_video)
+                         fps=fps, add_video_func=self.add_audio_to_video)

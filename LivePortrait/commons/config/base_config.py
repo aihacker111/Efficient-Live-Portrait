@@ -1,4 +1,6 @@
 # coding: utf-8
+# Author: Vo Nguyen An Tin
+# Email: tinprocoder0908@gmail.com
 
 """
 pretty printing class
