@@ -60,7 +60,8 @@ class EfficientLivePortrait(PortraitController):
                 else:
                     lip_delta_before_animation = self.retarget_lip(self.predictor, x_s,
                                                                    combined_lip_ratio_tensor_before_animation)
-        return source_lmk_lst, x_c_s_lst, f_s_lst, x_s_lst, r_s_lst, x_s_info_lst, img_rgb_lst, img_crop_256x256_lst, crop_info_lst, lip_delta_before_animation
+        source_n_frames = source_frame_rgb.shape[0]
+        return source_n_frames, source_lmk_lst, x_c_s_lst, f_s_lst, x_s_lst, r_s_lst, x_s_info_lst, img_rgb_lst, img_crop_256x256_lst, crop_info_lst, lip_delta_before_animation
 
     def prepare_multiple_portrait(self, source_image_path, ref_img):
         # Load and preprocess source image
@@ -156,12 +157,12 @@ class EfficientLivePortrait(PortraitController):
                                                                combined_lip_ratio_tensor_before_animation)
         return source_lmk, x_c_s, x_s, f_s, r_s, x_s_info, lip_delta_before_animation, crop_info, img_rgb, img_crop_256x256
 
-    def generate_video(self, i_p_paste_lst, source_lmk, n_frame, crop_info_lst, img_rgb_lst, mask_ori_lst, i_d_lst,
+    def generate_video(self, i_p_paste_lst, source_frames, source_lmk, n_frame, crop_info_lst, img_rgb_lst, mask_ori_lst, i_d_lst,
                        x_s_lst, x_c_s_lst, f_s_lst, r_s_lst, x_s_info_lst, c_d_eyes_lst,
                        c_d_lip_lst, lip_delta_before_animations):
-
+        frame_step = min(n_frame, source_frames)
         i_p_lst = []
-        for i in tqdm(range(n_frame), desc='🚀Animating...', total=n_frame):
+        for i in tqdm(range(frame_step), desc='🚀Animating...', total=frame_step):
             i_d_i = i_d_lst[i]
             x_d_i_info = self.get_kp_info(i_d_i, x_s_lst[i], r_s_lst[i], x_s_info_lst[i],
                                           lip_delta_before_animations, run_local=True)
@@ -385,14 +386,14 @@ class EfficientLivePortrait(PortraitController):
             images2video(i_p_paste_lst, wfp=wfp, video_path_original=video_path_or_id, wfp_audio=wfp_audio,
                          fps=original_fps, add_video_func=self.add_audio_to_video)
         elif mode == 'video':
-            source_lmk_lst, x_c_s_lst, f_s_lst, x_s_lst, r_s_lst, x_s_info_lst, \
+            source_frames, source_lmk_lst, x_c_s_lst, f_s_lst, x_s_lst, r_s_lst, x_s_info_lst, \
                 img_rgb_lst, _, \
                 crop_info_lst, lip_delta_before_animations = self.prepare_video_portrait(source_video_path)
             mask_origins, _, i_d_lst, i_p_paste_lst, _, \
                 n_frames, \
                 input_eye_ratio_lst, input_lip_ratio_lst = self.process_source_motion(img_rgb_lst, video_path_or_id,
                                                                                       crop_info_lst, self.cropper)
-            i_p_paste_lst = self.generate_video(i_p_paste_lst, source_lmk_lst, n_frames, crop_info_lst, img_rgb_lst,
+            i_p_paste_lst = self.generate_video(i_p_paste_lst, source_frames, source_lmk_lst, n_frames, crop_info_lst, img_rgb_lst,
                                                 mask_origins, i_d_lst, x_s_lst, x_c_s_lst, f_s_lst, r_s_lst,
                                                 x_s_info_lst, input_eye_ratio_lst, input_lip_ratio_lst,
                                                 lip_delta_before_animations)
