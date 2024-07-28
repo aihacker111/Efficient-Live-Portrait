@@ -32,6 +32,8 @@ Also we adding feature:
 
 [✅] 24/07/2024: Multiple Face motion in Video for animation multiples Face in image
 
+[✅] 28/07/2024: Supported Video2Video Live Portrait (only use one Face)
+
 [  ] Integrate X-pose TensorRT
 
 [  ] Integrate SadTalker with Efficient Live Portrait for generate realistic video
@@ -99,11 +101,15 @@ pretrained_weights
 + Also If you want to Quality Result. Please remove FP16, the speed can be slower than fp16 but result is better
 For run Face-ID mode:
 ```bash
-python run_live_portrait.py -v 'path/to/your/video/driving/or/webcam/id' -i 'path/to/your/image/want/to/animation' -ref 'path/the/single/face/image/to/compute/face-id' -r '/use/it/when/you/want/to/run/real-time/' -e -fp16 --use_face_id 
+python run_live_portrait.py --driving_video 'path/to/your/video/driving/or/webcam/id' --source_image 'path/to/your/image/want/to/animation' -condition_image 'path/the/single/face/image/to/compute/face-id' --mode ['image', 'video', 'webcam'] --run_time --half_precision --use_face_id 
 ```
 For run Multiple Face Motion mode:
 ```bash
-python run_live_portrait.py -v 'path/to/your/video/driving/or/webcam/id' -i 'path/to/your/image/want/to/animation'  -r '/use/it/when/you/want/to/run/real-time/' -e  
+python run_live_portrait.py --driving_video 'path/to/your/video/driving/or/webcam/id' --source_image 'path/to/your/image/want/to/animation'  --mode ['image', 'video', 'webcam'] --run_time --half_precision
+```
+For Vid2Vid Live Portrait:
+```bash
+python run_live_portrait.py --driving_video 'path/to/your/video/driving/or/webcam/id' --source_video 'path/to/your/video/want/to/animation'  --mode ['image', 'video', 'webcam'] --run_time --half_precision
 ```
 #### Colab Demo
  Follow in the colab folder

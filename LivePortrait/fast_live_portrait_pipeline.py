@@ -162,13 +162,21 @@ class EfficientLivePortrait(PortraitController):
                        mask_ori_lst, i_d_lst,
                        x_s_lst, x_c_s_lst, f_s_lst, r_s_lst, x_s_info_lst, c_d_eyes_lst,
                        c_d_lip_lst, lip_delta_before_animations):
-        frame_step = max(n_frame, len(i_d_lst))
         i_p_lst = []
-        for i in tqdm(range(frame_step), desc='🚀Animating...', total=frame_step):
-            source_idx = i % len(source_frames)  # Loop through source frames
-            i_d_i = i_d_lst[i % len(i_d_lst)]  # Loop through driving video frames if necessary
-            x_d_i_info = self.get_kp_info(i_d_i, x_s_lst[source_idx], r_s_lst[source_idx], x_s_info_lst[source_idx],
-                                          lip_delta_before_animations, run_local=True)
+        for i in tqdm(range(n_frame), desc='🚀Animating...', total=n_frame):
+            j = i % source_frames  # Cycle through source frames
+
+            i_d_i = i_d_lst[i]
+            x_s_j = x_s_lst[j]
+            x_c_s_j = x_c_s_lst[j]
+            f_s_j = f_s_lst[j]
+            r_s_j = r_s_lst[j]
+            x_s_info_j = x_s_info_lst[j]
+            crop_info_j = crop_info_lst[j]
+            img_rgb_j = img_rgb_lst[j]
+            mask_ori_j = mask_ori_lst[j]
+
+            x_d_i_info = self.get_kp_info(i_d_i, x_s_j, r_s_j, x_s_info_j, lip_delta_before_animations, run_local=True)
             r_d_i = self.get_rotation_matrix(x_d_i_info['pitch'], x_d_i_info['yaw'], x_d_i_info['roll'])
 
             if i == 0:
@@ -176,156 +184,60 @@ class EfficientLivePortrait(PortraitController):
                 x_d_0_info = x_d_i_info
 
             if self.cfg['flag_relative']:
-                r_new = r_s_lst[source_idx]
+                r_new = r_s_j
                 delta_new = x_d_i_info['exp'] - x_d_0_info['exp']
-                scale_new = x_s_info_lst[source_idx]['scale']
-                t_new = x_s_info_lst[source_idx]['t']
+                scale_new = x_s_info_j['scale']
+                t_new = x_s_info_j['t']
             else:
                 r_new = r_d_i
                 delta_new = x_d_i_info['exp']
-                scale_new = x_s_info_lst[source_idx]['scale']
+                scale_new = x_s_info_j['scale']
                 t_new = x_d_i_info['t']
 
             t_new[..., 2].fill_(0)  # zero tz
-            x_d_i_new = scale_new * (x_c_s_lst[source_idx] @ r_new + delta_new) + t_new
+            x_d_i_new = scale_new * (x_c_s_j @ r_new + delta_new) + t_new
 
-            # Algorithm 1:
             if not self.cfg['flag_stitching'] and not self.cfg['flag_eye_retargeting'] and not self.cfg[
                 'flag_lip_retargeting']:
                 if self.cfg['flag_lip_zero']:
-                    x_d_i_new += lip_delta_before_animations.reshape(-1, x_s_lst[source_idx].shape[1], 3)
+                    x_d_i_new += lip_delta_before_animations.reshape(-1, x_s_j.shape[1], 3)
+                else:
+                    pass
             elif self.cfg['flag_stitching'] and not self.cfg['flag_eye_retargeting'] and not self.cfg[
                 'flag_lip_retargeting']:
                 if self.cfg['flag_lip_zero']:
-                    x_d_i_new = self.stitching(self.predictor, x_s_lst[source_idx],
-                                               x_d_i_new) + lip_delta_before_animations.reshape(-1,
-                                                                                                x_s_lst[
-                                                                                                    source_idx].shape[
-                                                                                                    1],
-                                                                                                3)
+                    x_d_i_new = self.stitching(self.predictor, x_s_j, x_d_i_new) + lip_delta_before_animations.reshape(
+                        -1, x_s_j.shape[1], 3)
                 else:
-                    x_d_i_new = self.stitching(self.predictor, x_s_lst[source_idx], x_d_i_new)
+                    x_d_i_new = self.stitching(self.predictor, x_s_j, x_d_i_new)
             else:
                 eyes_delta, lip_delta = None, None
                 if self.cfg['flag_eye_retargeting']:
-                    c_d_eyes_i = c_d_eyes_lst[i % len(c_d_eyes_lst)]
-                    combined_eye_ratio_tensor = self.calc_combined_eye_ratio(c_d_eyes_i, source_lmk)
-                    eyes_delta = self.retarget_eye(self.predictor, x_s_lst[source_idx], combined_eye_ratio_tensor)
+                    combined_eye_ratio_tensor = self.calc_combined_eye_ratio(c_d_eyes_lst[i], source_lmk)
+                    eyes_delta = self.retarget_eye(self.predictor, x_s_j, combined_eye_ratio_tensor)
                 if self.cfg['flag_lip_retargeting']:
-                    c_d_lip_i = c_d_lip_lst[i % len(c_d_lip_lst)]
-                    combined_lip_ratio_tensor = self.calc_combined_lip_ratio(c_d_lip_i, source_lmk)
-                    lip_delta = self.retarget_lip(self.predictor, x_s_lst[source_idx], combined_lip_ratio_tensor)
+                    combined_lip_ratio_tensor = self.calc_combined_lip_ratio(c_d_lip_lst[i], source_lmk)
+                    lip_delta = self.retarget_lip(self.predictor, x_s_j, combined_lip_ratio_tensor)
 
-                if self.cfg['flag_relative_motion']:  # use x_s_lst[source_idx]
-                    x_d_i_new = x_s_lst[source_idx] + \
-                                (eyes_delta.reshape(-1, x_s_lst[source_idx].shape[1],
-                                                    3) if eyes_delta is not None else 0) + \
-                                (lip_delta.reshape(-1, x_s_lst[source_idx].shape[1], 3) if lip_delta is not None else 0)
-                else:  # use x_d_i
-                    x_d_i_new = x_d_i_new + \
-                                (eyes_delta.reshape(-1, x_s_lst[source_idx].shape[1],
-                                                    3) if eyes_delta is not None else 0) + \
-                                (lip_delta.reshape(-1, x_s_lst[source_idx].shape[1], 3) if lip_delta is not None else 0)
+                if self.cfg['flag_relative_motion']:
+                    x_d_i_new = x_s_j + (eyes_delta.reshape(-1, x_s_j.shape[1], 3) if eyes_delta is not None else 0) + (
+                        lip_delta.reshape(-1, x_s_j.shape[1], 3) if lip_delta is not None else 0)
+                else:
+                    x_d_i_new = x_d_i_new + (
+                        eyes_delta.reshape(-1, x_s_j.shape[1], 3) if eyes_delta is not None else 0) + (
+                                    lip_delta.reshape(-1, x_s_j.shape[1], 3) if lip_delta is not None else 0)
 
                 if self.cfg['flag_stitching']:
-                    x_d_i_new = self.stitching(self.predictor, x_s_lst[source_idx], x_d_i_new)
+                    x_d_i_new = self.stitching(self.predictor, x_s_j, x_d_i_new)
 
-            i_p_i = self.warp_decode(f_s_lst[source_idx], x_s_lst[source_idx], x_d_i_new)
-
+            i_p_i = self.warp_decode(f_s_j, x_s_j, x_d_i_new)
             i_p_lst.append(i_p_i)
 
             if self.cfg['flag_pasteback'] and self.cfg['flag_do_crop'] and self.cfg['flag_stitching']:
-                i_p_paste_back = self.paste_back(i_p_i, crop_info_lst[source_idx]['M_c2o'], img_rgb_lst[source_idx],
-                                                 mask_ori_lst[source_idx])
+                i_p_paste_back = self.paste_back(i_p_i, crop_info_j['M_c2o'], img_rgb_j, mask_ori_j)
                 i_p_paste_lst.append(i_p_paste_back)
-        return i_p_paste_lst
 
-    # def generate_video(self, i_p_paste_lst, source_frames, source_lmk, n_frame, crop_info_lst, img_rgb_lst, mask_ori_lst, i_d_lst,
-    #                    x_s_lst, x_c_s_lst, f_s_lst, r_s_lst, x_s_info_lst, c_d_eyes_lst,
-    #                    c_d_lip_lst, lip_delta_before_animations):
-    #     frame_step = max(n_frame, len(source_frames))
-    #     i_p_lst = []
-    #     for i in tqdm(range(frame_step), desc='🚀Animating...', total=frame_step):
-    #         source_idx = i % len(source_frames)
-    #         i_d_i = i_d_lst[i]
-    #         x_d_i_info = self.get_kp_info(i_d_i, x_s_lst[i], r_s_lst[i], x_s_info_lst[i],
-    #                                       lip_delta_before_animations, run_local=True)
-    #         r_d_i = self.get_rotation_matrix(x_d_i_info['pitch'], x_d_i_info['yaw'], x_d_i_info['roll'])
-    #
-    #         if i == 0:
-    #             r_d_0 = r_d_i
-    #             x_d_0_info = x_d_i_info
-    #
-    #         if self.cfg['flag_relative']:
-    #             r_new = r_s_lst[i]
-    #             delta_new = x_d_i_info['exp'] - x_d_0_info['exp']
-    #             scale_new = x_s_info_lst[i]['scale']
-    #             t_new = x_s_info_lst[i]['t']
-    #             # r_new = (r_d_i @ r_d_0.permute(0, 2, 1)) @ r_s_lst[i]
-    #             # delta_new = x_s_info_lst[i]['exp'] + (x_d_i_info['exp'] - x_d_0_info['exp'])
-    #             # scale_new = x_s_info_lst[i]['scale']
-    #             # # if self.cropping_video else face_data['x_s_info']['scale'] * (x_d_i_info['scale'] / x_d_0_info['scale'])
-    #             # t_new = x_s_info_lst[i]['t'] + (x_d_i_info['t'] - x_d_0_info['t'])
-    #         else:
-    #             r_new = r_d_i
-    #             delta_new = x_d_i_info['exp']
-    #             scale_new = x_s_info_lst[i]['scale']
-    #             t_new = x_d_i_info['t']
-    #
-    #         t_new[..., 2].fill_(0)  # zero tz
-    #         x_d_i_new = scale_new * (x_c_s_lst[i] @ r_new + delta_new) + t_new
-    #
-    #         # Algorithm 1:
-    #         if not self.cfg['flag_stitching'] and not self.cfg['flag_eye_retargeting'] and not self.cfg['flag_lip_retargeting']:
-    #             # without stitching or retargeting
-    #             if self.cfg['flag_lip_zero']:
-    #                 x_d_i_new += lip_delta_before_animations.reshape(-1, x_s_lst[i].shape[1], 3)
-    #             else:
-    #                 pass
-    #         elif self.cfg['flag_stitching'] and not self.cfg['flag_eye_retargeting'] and not self.cfg['flag_lip_retargeting']:
-    #             # with stitching and without retargeting
-    #             if self.cfg['flag_lip_zero']:
-    #                 x_d_i_new = self.stitching(self.predictor, x_s_lst[i],
-    #                                            x_d_i_new) + lip_delta_before_animations.reshape(-1,
-    #                                                                                            x_s_lst[
-    #                                                                                                i].shape[
-    #                                                                                                1],
-    #                                                                                            3)
-    #             else:
-    #                 x_d_i_new = self.stitching(self.predictor, x_s_lst[i], x_d_i_new)
-    #         else:
-    #             eyes_delta, lip_delta = None, None
-    #             if self.cfg['flag_eye_retargeting']:
-    #                 c_d_eyes_i = c_d_eyes_lst[i]
-    #                 combined_eye_ratio_tensor = self.calc_combined_eye_ratio(c_d_eyes_i, source_lmk)
-    #                 # ∆_eyes,i = R_eyes(x_s_lst[i]; c_s,eyes, c_d,eyes,i)
-    #                 eyes_delta = self.retarget_eye(self.predictor, x_s_lst[i], combined_eye_ratio_tensor)
-    #             if self.cfg['flag_lip_retargeting']:
-    #                 c_d_lip_i = c_d_lip_lst[i]
-    #                 combined_lip_ratio_tensor = self.calc_combined_lip_ratio(c_d_lip_i, source_lmk)
-    #                 # ∆_lip,i = R_lip(x_s_lst[i]; c_s,lip, c_d,lip,i)
-    #                 lip_delta = self.retarget_lip(self.predictor, x_s_lst[i], combined_lip_ratio_tensor)
-    #
-    #             if self.cfg['flag_relative_motion']:  # use x_s_lst[i]
-    #                 x_d_i_new = x_s_lst[i] + \
-    #                             (eyes_delta.reshape(-1, x_s_lst[i].shape[1], 3) if eyes_delta is not None else 0) + \
-    #                             (lip_delta.reshape(-1, x_s_lst[i].shape[1], 3) if lip_delta is not None else 0)
-    #             else:  # use x_d,i
-    #                 x_d_i_new = x_d_i_new + \
-    #                             (eyes_delta.reshape(-1, x_s_lst[i].shape[1], 3) if eyes_delta is not None else 0) + \
-    #                             (lip_delta.reshape(-1, x_s_lst[i].shape[1], 3) if lip_delta is not None else 0)
-    #
-    #             if self.cfg['flag_stitching']:
-    #                 x_d_i_new = self.stitching(self.predictor, x_s_lst[i], x_d_i_new)
-    #
-    #         i_p_i = self.warp_decode(f_s_lst[i], x_s_lst[i], x_d_i_new)
-    #
-    #         i_p_lst.append(i_p_i)
-    #
-    #         if self.cfg['flag_pasteback'] and self.cfg['flag_do_crop'] and self.cfg['flag_stitching']:
-    #             i_p_paste_back = self.paste_back(i_p_i, crop_info_lst[i]['M_c2o'], img_rgb_lst[i], mask_ori_lst[i])
-    #             i_p_paste_lst.append(i_p_paste_back)
-    #     return i_p_paste_lst
+        return i_p_paste_lst
 
     def generate(self, input_list):
         i_p_lst = []
