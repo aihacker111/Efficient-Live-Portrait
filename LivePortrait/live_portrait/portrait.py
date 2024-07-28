@@ -51,17 +51,20 @@ class PortraitController(ParsingPaste, FaceCropper):
         template_lst = None
         input_eye_ratio_lst = None
         input_lip_ratio_lst = None
+        mask_origins = []
         driving_rgb_lst = load_driving_info(source_motion)
         driving_rgb_lst_256 = [cv2.resize(_, (256, 256)) for _ in driving_rgb_lst]
         i_d_lst = self.prepare_driving_videos(driving_rgb_lst_256, single_image=False)
         n_frames = i_d_lst.shape[0]
         if self.cfg['flag_eye_retargeting'] or self.cfg['flag_lip_retargeting']:
-            driving_lmk_lst = cropper.get_retargeting_lmk_info(driving_rgb_lst)
-            input_eye_ratio_lst, input_lip_ratio_lst = self.calc_retargeting_ratio(driving_lmk_lst)
-        mask_ori = self.prepare_paste_back(crop_info['M_c2o'],
-                                           dsize=(img_rgb.shape[1], img_rgb.shape[0]))
+                driving_lmk_lst = cropper.get_retargeting_lmk_info(driving_rgb_lst)
+                input_eye_ratio_lst, input_lip_ratio_lst = self.calc_retargeting_ratio(driving_lmk_lst)
+        for img, crop_inf in zip(img_rgb, crop_info):
+            mask_ori = self.prepare_paste_back(crop_inf['M_c2o'],
+                                               dsize=(img.shape[1], img.shape[0]))
+            mask_origins.append(mask_ori)
         i_p_paste_lst = []
-        return mask_ori, driving_rgb_lst, i_d_lst, i_p_paste_lst, template_lst, n_frames, input_eye_ratio_lst, input_lip_ratio_lst
+        return mask_origins, driving_rgb_lst, i_d_lst, i_p_paste_lst, template_lst, n_frames, input_eye_ratio_lst, input_lip_ratio_lst
 
     def process_multiple_source_motion(self, source_motion, crop_info, max_faces, cropper, cropping_video):
         template_lst = None
