@@ -197,6 +197,8 @@ def images2video(images, wfp, video_path_original, wfp_audio, fps, add_video_fun
             writer.append_data(images[i])
 
     writer.close()
+    if wfp_audio is None:
+        print(f'Dump to {wfp}\n')
     if audio_from_source:
         add_video_func(wfp, source_video_path, output_video_path=wfp_audio)
     else:

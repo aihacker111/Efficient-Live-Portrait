@@ -344,7 +344,7 @@ class EfficientLivePortrait(PortraitController):
 
                 # Decode and accumulate frame results
                 i_p_i = self.warp_decode(face_data['f_s'], face_data['x_s'], x_d_i_new)
-
+                i_p_lst.append(i_p_i)
                 img_rgb = self.paste_back(i_p_i, face_data['M_c2o'], img_rgb, face_data['mask_ori'])
 
                 i_p_paste_lst.append(img_rgb)
@@ -379,10 +379,15 @@ class EfficientLivePortrait(PortraitController):
             cv2.destroyAllWindows()
         elif task == 'image':
             crop_infos = self.prepare_multiple_portrait(source_image_path=image_path, ref_img=ref_img)
-            source_motion_dict = self.process_multiple_source_motion(
+            source_motion_dict, source_motion_256 = self.process_multiple_source_motion(
                 video_path_or_id, crop_infos, max_faces, self.cropper, cropping_video=self.cropping_video)
-            _, i_p_paste_lst, original_fps = self.generate(source_motion_dict)
+            i_p_lst, i_p_paste_lst, original_fps = self.generate(source_motion_dict)
+            frame_concated = self.concat_frames(i_p_lst, driving_rgb_lst=source_motion_256)
             self.mkdir('animations')
+            wfp_concat = osp.join('animations', f'{basename(image_path)}--{basename(video_path_or_id)}_concat.mp4')
+
+            images2video(frame_concated, wfp=wfp_concat, video_path_original=video_path_or_id, wfp_audio=None,
+                         fps=original_fps, add_video_func=self.add_audio_to_video)
 
             wfp = osp.join('animations', f'{basename(image_path)}--{basename(video_path_or_id)}.mp4')
             wfp_audio = osp.join('animations', f'{basename(image_path)}--{basename(video_path_or_id)}_audio.mp4')

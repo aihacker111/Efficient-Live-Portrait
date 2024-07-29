@@ -79,8 +79,8 @@ class PortraitController(ParsingPaste, FaceCropper):
             cropped_face_motion_info = self.cropper.crop_source_video(source_motion, max_faces)
         else:
             cropped_face_motion_info = self.cropper.calc_lmks_from_cropped_video(source_motion)
-        result_list = []
 
+        result_list = []
         # Iterate over the faces in crop_info and match with motion data
         for face_index, crop_f in enumerate(crop_info):
             # Iterate over all face keys in the current crop_f
@@ -94,7 +94,6 @@ class PortraitController(ParsingPaste, FaceCropper):
                     # Iterate over all motion keys to find the corresponding data
                     for motion_key in crop_face_motion.keys():
                         motion_data = crop_face_motion[motion_key]
-
                         # Update face_data with motion data
                         # face_data['frame_crop_lst'] = motion_data['frame_crop_lst']
                         # face_data['M_c2o_lst'] = motion_data['M_c2o_lst']
@@ -129,8 +128,8 @@ class PortraitController(ParsingPaste, FaceCropper):
                             },
                             f"face_image_{face_index}": face_data  # Store the face data
                         })
-
-        return result_list
+        frame_crop_lst_all = [motion_data['frame_crop_lst'] for face_motion in cropped_face_motion_info for motion_data in face_motion.values()]
+        return result_list, frame_crop_lst_all
 
     def algorithm(self, x_s, x_d_i_info, r_s, x_s_info, lip_delta_before_animation):
         r_d_i = self.get_rotation_matrix(x_d_i_info['pitch'], x_d_i_info['yaw'], x_d_i_info['roll'])

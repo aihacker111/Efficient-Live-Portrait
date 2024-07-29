@@ -124,19 +124,23 @@ class ParsingPaste(Transform3DFunction):
             print(f"Error occurred: {e}")
 
     @staticmethod
-    def concat_frames(i_p_lst, driving_rgb_lst, img_rgb):
+    def concat_frames(i_p_lst, driving_rgb_lst):
         out_lst = []
-        for idx, _ in track(enumerate(i_p_lst), total=len(i_p_lst), description='Concatenating result...'):
-            source_image_drive = i_p_lst[idx]
-            image_drive = driving_rgb_lst[idx]
-            # resize images to match source_image_drived shape
-            h, w, _ = source_image_drive.shape
-            image_drive_resized = cv2.resize(image_drive, (w, h))
-            img_rgb_resized = cv2.resize(img_rgb, (w, h))
 
-            # concatenate images horizontally
-            frame = np.concatenate((image_drive_resized, img_rgb_resized, source_image_drive), axis=1)
-            out_lst.append(frame)
+        # Iterate over each list of driving frames and corresponding i_p frames
+        for frame_index in range(len(i_p_lst)):
+            source_image_drive = i_p_lst[frame_index]
+
+            # Concatenate corresponding driving frames from each list
+            for driving_frames in driving_rgb_lst:
+                image_drive = driving_frames[frame_index]
+                # Resize images to match source_image_drive shape
+                h, w, _ = source_image_drive.shape
+                image_drive_resized = cv2.resize(image_drive, (w, h))
+
+                # Concatenate images horizontally
+                frame = np.concatenate((image_drive_resized, source_image_drive), axis=1)
+                out_lst.append(frame)
         return out_lst
 
     @staticmethod
