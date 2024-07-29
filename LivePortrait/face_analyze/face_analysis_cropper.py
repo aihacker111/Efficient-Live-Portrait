@@ -231,7 +231,7 @@ class FaceCropper:
                     trajectory.M_c2o_lst.append(ret_dct['M_c2o'])
 
         if use_for_vid2vid:
-            return trajectory.frame_rgb_crop_lst, fps
+            return source_rgb_lst, fps
         return [
             {
                 f"face_control_{face_id}": {
@@ -277,7 +277,7 @@ class FaceCropper:
                 trajectory.lmk_lst.append(lmk)
             trajectory.frame_rgb_crop_lst.append(cv2.resize(frame_rgb, (256, 256)))
         if use_for_vid2vid:
-            return trajectory.frame_rgb_crop_lst, fps
+            return source_rgb_lst, fps
         return [
             {
                 f"face_control_{face_id}": {

@@ -18,5 +18,6 @@ spade_generator.quant.onnx
 efficient-live-portrait.yaml
 test_cfg.py
 img.png
+img_1.png
 test_2_multiple_face.mp4
 test_driving_3_face.mp4

@@ -351,16 +351,16 @@ class EfficientLivePortrait(PortraitController):
 
         return i_p_lst, i_p_paste_lst, original_fps
 
-    def render(self, video_path_or_id, image_path, source_video_path, ref_img, max_faces, mode):
+    def render(self, video_path_or_id, image_path, source_video_path, ref_img, max_faces, task, audio_from_source):
         """
         Video_path_or_id is use for 2 process, please make sure video_id only use for real-time demo
         """
 
-        if mode == 'webcam':
+        if task == 'webcam':
             _, _, x_s, f_s, r_s, \
                 x_s_info, lip_delta_before_animation, crop_info, \
                 img_rgb, _ = self.prepare_webcam_portrait(source_image_path=image_path)
-            cap = cv2.VideoCapture(int(video_path_or_id) if mode else video_path_or_id)
+            cap = cv2.VideoCapture(int(video_path_or_id) if task == 'webcam' else video_path_or_id)
             while cap.isOpened():
                 ret, frame = cap.read()
                 if not ret:
@@ -377,7 +377,7 @@ class EfficientLivePortrait(PortraitController):
                     break
             cap.release()
             cv2.destroyAllWindows()
-        elif mode == 'image':
+        elif task == 'image':
             crop_infos = self.prepare_multiple_portrait(source_image_path=image_path, ref_img=ref_img)
             source_motion_dict = self.process_multiple_source_motion(
                 video_path_or_id, crop_infos, max_faces, self.cropper, cropping_video=self.cropping_video)
@@ -388,14 +388,14 @@ class EfficientLivePortrait(PortraitController):
             wfp_audio = osp.join('animations', f'{basename(image_path)}--{basename(video_path_or_id)}_audio.mp4')
             images2video(i_p_paste_lst, wfp=wfp, video_path_original=video_path_or_id, wfp_audio=wfp_audio,
                          fps=original_fps, add_video_func=self.add_audio_to_video)
-        elif mode == 'video':
+        elif task == 'video':
             source_frames, source_lmk_lst, x_c_s_lst, f_s_lst, x_s_lst, r_s_lst, x_s_info_lst, \
                 img_rgb_lst, _, \
                 crop_info_lst, lip_delta_before_animations = self.prepare_video_portrait(source_video_path)
             fps, mask_origins, _, i_d_lst, i_p_paste_lst, _, \
                 n_frames, \
                 input_eye_ratio_lst, input_lip_ratio_lst = self.process_source_motion(img_rgb_lst, video_path_or_id,
-                                                                                      crop_info_lst, self.cropper, automatic_cropping_video=self.cropping_video)
+                                                                                      crop_info_lst, self.cropper, automatic_cropping_video=self.cropping_video,)
             i_p_paste_lst = self.generate_video(i_p_paste_lst, source_frames, source_lmk_lst, n_frames, crop_info_lst, img_rgb_lst,
                                                 mask_origins, i_d_lst, x_s_lst, x_c_s_lst, f_s_lst, r_s_lst,
                                                 x_s_info_lst, input_eye_ratio_lst, input_lip_ratio_lst,
@@ -404,5 +404,5 @@ class EfficientLivePortrait(PortraitController):
 
             wfp = osp.join('animations', f'{basename(source_video_path)}--{basename(video_path_or_id)}_vid2vid.mp4')
             wfp_audio = osp.join('animations', f'{basename(source_video_path)}--{basename(video_path_or_id)}_vid2vid_audio.mp4')
-            images2video(i_p_paste_lst, wfp=wfp, video_path_original=video_path_or_id, wfp_audio=wfp_audio,
-                         fps=fps, add_video_func=self.add_audio_to_video)
+            images2video(i_p_paste_lst, wfp=wfp, video_path_original=video_path_or_id, source_video_path=source_video_path, wfp_audio=wfp_audio,
+                         fps=fps, add_video_func=self.add_audio_to_video, audio_from_source=audio_from_source)

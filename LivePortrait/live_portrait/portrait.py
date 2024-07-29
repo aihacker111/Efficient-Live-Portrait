@@ -56,10 +56,11 @@ class PortraitController(ParsingPaste, FaceCropper):
         input_lip_ratio_lst = None
         mask_origins = []
         if automatic_cropping_video:
-            driving_rgb_lst_256, fps = self.cropper.crop_source_video(source_motion, max_faces=1, use_for_vid2vid=True)
+            driving_rgb_lst, fps = self.cropper.crop_source_video(source_motion, max_faces=1, use_for_vid2vid=True)
+            driving_rgb_lst_256 = [cv2.resize(_, (256, 256)) for _ in driving_rgb_lst]
         else:
-            driving_rgb_lst_256, fps = self.cropper.calc_lmks_from_cropped_video(source_motion, use_for_vid2vid=True)
-
+            driving_rgb_lst, fps = self.cropper.calc_lmks_from_cropped_video(source_motion, use_for_vid2vid=True)
+            driving_rgb_lst_256 = [cv2.resize(_, (256, 256)) for _ in driving_rgb_lst]
         i_d_lst = self.prepare_driving_videos(driving_rgb_lst_256, single_image=False)
         n_frames = i_d_lst.shape[0]
         if self.cfg['flag_eye_retargeting'] or self.cfg['flag_lip_retargeting']:
@@ -70,7 +71,7 @@ class PortraitController(ParsingPaste, FaceCropper):
                                                dsize=(img.shape[1], img.shape[0]))
             mask_origins.append(mask_ori)
         i_p_paste_lst = []
-        return fps, mask_origins, driving_rgb_lst_256, i_d_lst, i_p_paste_lst, template_lst, n_frames, input_eye_ratio_lst, input_lip_ratio_lst
+        return fps, mask_origins, driving_rgb_lst, i_d_lst, i_p_paste_lst, template_lst, n_frames, input_eye_ratio_lst, input_lip_ratio_lst
 
     def process_multiple_source_motion(self, source_motion, crop_info, max_faces, cropper, cropping_video):
         template_lst = None
