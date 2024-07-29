@@ -27,9 +27,9 @@ class EfficientLivePortrait(PortraitController):
         img_crop_256x256_lst = []
         img_rgb_lst = []
         if self.cropping_video:
-            source_frame_rgb, _ = self.cropper.crop_source_video(source_video_path, max_faces=1, use_for_vid2vid=True)
+            source_frame_rgb, _, _ = self.cropper.crop_source_video(source_video_path, max_faces=1, use_for_vid2vid=True)
         else:
-            source_frame_rgb, _ = self.cropper.calc_lmks_from_cropped_video(source_video_path, use_for_vid2vid=True)
+            source_frame_rgb, _, _ = self.cropper.calc_lmks_from_cropped_video(source_video_path, use_for_vid2vid=True)
 
         for img_rgb in source_frame_rgb:
             crop_info = self.cropper.crop_single_image(img_rgb)

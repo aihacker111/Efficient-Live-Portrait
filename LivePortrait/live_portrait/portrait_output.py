@@ -44,7 +44,7 @@ class ParsingPaste(Transform3DFunction):
         """paste back the image
         """
         dsize = (rgb_ori.shape[1], rgb_ori.shape[0])
-        result = self._transform_img(image_to_processed, crop_m_c2o, borderMode=None, dsize=dsize)
+        result = self._transform_img(image_to_processed, crop_m_c2o, dsize=dsize)
         result = mask_ori * result + (1 - mask_ori) * rgb_ori
         result = np.clip(result, 0, 255).astype('uint8')
         return result
