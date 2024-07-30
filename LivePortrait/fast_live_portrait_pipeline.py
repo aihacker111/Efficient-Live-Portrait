@@ -7,7 +7,7 @@ import numpy as np
 import os.path as osp
 from tqdm import tqdm
 from LivePortrait.commons import load_image_rgb, resize_to_limit, basename, images2video
-from controlnet_sdxl_lightning import SDXLLightningOpenPose
+from LivePortrait.controlnet_sdxl_lightning import SDXLLightningOpenPose
 from LivePortrait.live_portrait import PortraitController
 
 

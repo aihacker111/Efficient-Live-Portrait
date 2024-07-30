@@ -1,4 +1,6 @@
 # Efficient-Live-Portrait
+## 📹 SDXL-Lightning + Controlnet-Open-Pose + Live-Portrait
+
 ## 📹 Video2Video Demo
 
 
@@ -40,9 +42,7 @@ Also we adding feature:
 
 [✅] 28/07/2024: Supported Video2Video Live Portrait (only use one Face)
 
-[  ] Integrate X-pose TensorRT
-
-[  ] Integrate SadTalker with Efficient Live Portrait for generate realistic video
+[✅] 30/07/2024: Support SDXL-Lightning Controlnet-Open-Pose from 1 to 8 step for change source image to Art Image
 
 [  ] Integrate Animate-Diff Lightning Motion module
 
@@ -116,6 +116,10 @@ python run_live_portrait.py --driving_video 'path/to/your/video/driving/or/webca
 For Vid2Vid Live Portrait:
 ```bash
 python run_live_portrait.py --driving_video 'path/to/your/video/driving/or/webcam/id' --source_video 'path/to/your/video/want/to/animation'  --task ['image', 'video', 'webcam'] --run_time --half_precision
+```
+For SDXL-Lightning + OpenPose-Lora + Live Portrait
+```bash
+python /content/Efficient-Live-Portrait/run_live_portrait.py --driving_video 'path/to/your/video' --source_image 'path/to/your/image/want/to/animation'  --run_time --task image --use_diffusion --lcm_steps [1, 2, 4, 8] --prompt '1girl, offshoulder, light smile, shiny skin best quality, masterpiece, photorealistic'
 ```
 #### Colab Demo
  Follow in the colab folder
