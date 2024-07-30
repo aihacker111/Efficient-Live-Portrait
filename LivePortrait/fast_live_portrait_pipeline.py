@@ -27,7 +27,8 @@ class EfficientLivePortrait(PortraitController):
         img_crop_256x256_lst = []
         img_rgb_lst = []
         if self.cropping_video:
-            source_frame_rgb, _, _ = self.cropper.crop_source_video(source_video_path, max_faces=1, use_for_vid2vid=True)
+            source_frame_rgb, _, _ = self.cropper.crop_source_video(source_video_path, max_faces=1,
+                                                                    use_for_vid2vid=True)
         else:
             source_frame_rgb, _, _ = self.cropper.calc_lmks_from_cropped_video(source_video_path, use_for_vid2vid=True)
 
@@ -400,14 +401,18 @@ class EfficientLivePortrait(PortraitController):
             fps, mask_origins, _, i_d_lst, i_p_paste_lst, _, \
                 n_frames, \
                 input_eye_ratio_lst, input_lip_ratio_lst = self.process_source_motion(img_rgb_lst, video_path_or_id,
-                                                                                      crop_info_lst, self.cropper, automatic_cropping_video=self.cropping_video,)
-            i_p_paste_lst = self.generate_video(i_p_paste_lst, source_frames, source_lmk_lst, n_frames, crop_info_lst, img_rgb_lst,
+                                                                                      crop_info_lst, self.cropper,
+                                                                                      automatic_cropping_video=self.cropping_video, )
+            i_p_paste_lst = self.generate_video(i_p_paste_lst, source_frames, source_lmk_lst, n_frames, crop_info_lst,
+                                                img_rgb_lst,
                                                 mask_origins, i_d_lst, x_s_lst, x_c_s_lst, f_s_lst, r_s_lst,
                                                 x_s_info_lst, input_eye_ratio_lst, input_lip_ratio_lst,
                                                 lip_delta_before_animations)
             self.mkdir('animations')
 
             wfp = osp.join('animations', f'{basename(source_video_path)}--{basename(video_path_or_id)}_vid2vid.mp4')
-            wfp_audio = osp.join('animations', f'{basename(source_video_path)}--{basename(video_path_or_id)}_vid2vid_audio.mp4')
-            images2video(i_p_paste_lst, wfp=wfp, video_path_original=video_path_or_id, source_video_path=source_video_path, wfp_audio=wfp_audio,
+            wfp_audio = osp.join('animations',
+                                 f'{basename(source_video_path)}--{basename(video_path_or_id)}_vid2vid_audio.mp4')
+            images2video(i_p_paste_lst, wfp=wfp, video_path_original=video_path_or_id,
+                         source_video_path=source_video_path, wfp_audio=wfp_audio,
                          fps=fps, add_video_func=self.add_audio_to_video, audio_from_source=audio_from_source)

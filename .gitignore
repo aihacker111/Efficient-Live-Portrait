@@ -1,6 +1,5 @@
 __pycache__
 .idea
-dw_pose
 animations/Live-Portrait-ONNX
 Live-Portrait-TensorRT
 Live-Portrait-TensorRT-FP32
@@ -12,11 +11,11 @@ debug
 .DS_Store
 code_test.py
 output_video.mp4
+run_live_portrait_img2img.py
 push_model_hf.py
 spade_generator.onnx
 spade_generator.quant.onnx
 efficient-live-portrait.yaml
-test_cfg.py
 img.png
 img_1.png
 test_2_multiple_face.mp4

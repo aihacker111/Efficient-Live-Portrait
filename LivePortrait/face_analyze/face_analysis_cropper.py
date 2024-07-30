@@ -168,7 +168,6 @@ class FaceCropper:
                           max_faces,
                           use_for_vid2vid=False,
                           **kwargs):
-        # os.makedirs('/Users/macbook/Downloads/Efficient-Face2Vid-Portrait/colab/img_crop', exist_ok=True)
         source_rgb_lst, fps = self.load_video(driving_video)
         source_rgb_lst = [resize_to_limit(img, 1280, 2) for img in
                           source_rgb_lst]
