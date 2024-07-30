@@ -397,12 +397,10 @@ class EfficientLivePortrait(PortraitController):
             frame_concated = self.concat_frames(i_p_lst, driving_rgb_lst=source_motion_256)
             self.mkdir('animations')
             wfp_concat = osp.join('animations', f'{basename(image_path)}--{basename(video_path_or_id)}_concat.mp4')
-
-            images2video(frame_concated, wfp=wfp_concat, video_path_original=video_path_or_id, wfp_audio=None,
-                         fps=original_fps, add_video_func=self.add_audio_to_video)
-
             wfp = osp.join('animations', f'{basename(image_path)}--{basename(video_path_or_id)}.mp4')
             wfp_audio = osp.join('animations', f'{basename(image_path)}--{basename(video_path_or_id)}_audio.mp4')
+            images2video(frame_concated, wfp=wfp_concat, video_path_original=video_path_or_id, wfp_audio=None,
+                         fps=original_fps, add_video_func=self.add_audio_to_video)
             images2video(i_p_paste_lst, wfp=wfp, video_path_original=video_path_or_id, wfp_audio=wfp_audio,
                          fps=original_fps, add_video_func=self.add_audio_to_video)
         elif task == 'video':
