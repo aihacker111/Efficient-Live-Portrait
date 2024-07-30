@@ -1,6 +1,14 @@
 # Efficient-Live-Portrait
 ## 📹 SDXL-Lightning + Controlnet-Open-Pose + Live-Portrait
 
+
+https://github.com/user-attachments/assets/5ca959f9-8fcc-4233-8a1d-9b201bd042c9
+
+
+
+https://github.com/user-attachments/assets/24086eea-7075-45ec-8eef-2a9344185746
+
+
 ## 📹 Video2Video Demo
 
 
