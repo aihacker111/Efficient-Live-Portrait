@@ -22,3 +22,4 @@ gradio==4.37.1
 tensorrt
 pycuda
 omegaconf
+diffusers==0.25.1

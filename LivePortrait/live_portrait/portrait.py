@@ -35,7 +35,7 @@ class PortraitController(ParsingPaste, FaceCropper):
         return x
 
     @staticmethod
-    def prepare_driving_videos(imgs, single_image):
+    def prepare_driving_videos(imgs, single_image=False):
         if isinstance(imgs, list):
             _imgs = np.array(imgs)[..., np.newaxis]  # TxHxWx3x1
         elif isinstance(imgs, np.ndarray):

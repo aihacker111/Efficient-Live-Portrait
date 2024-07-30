@@ -7,6 +7,7 @@ import numpy as np
 import os.path as osp
 from tqdm import tqdm
 from LivePortrait.commons import load_image_rgb, resize_to_limit, basename, images2video
+from LivePortrait.controlnet_sdxl_lightning import SDXLLightningOpenPose
 from LivePortrait.live_portrait import PortraitController
 
 
@@ -15,6 +16,7 @@ class EfficientLivePortrait(PortraitController):
         super().__init__(use_tensorrt, half, **kwargs)
         self.config = kwargs
         self.cropping_video = cropping_video
+        self.diffusion = SDXLLightningOpenPose()
 
     def prepare_video_portrait(self, source_video_path):
         source_lmk_lst = []
@@ -27,7 +29,8 @@ class EfficientLivePortrait(PortraitController):
         img_crop_256x256_lst = []
         img_rgb_lst = []
         if self.cropping_video:
-            source_frame_rgb, _, _ = self.cropper.crop_source_video(source_video_path, max_faces=1, use_for_vid2vid=True)
+            source_frame_rgb, _, _ = self.cropper.crop_source_video(source_video_path, max_faces=1,
+                                                                    use_for_vid2vid=True)
         else:
             source_frame_rgb, _, _ = self.cropper.calc_lmks_from_cropped_video(source_video_path, use_for_vid2vid=True)
 
@@ -71,10 +74,13 @@ class EfficientLivePortrait(PortraitController):
         source_n_frames = source_frame_rgb.shape[0]
         return source_n_frames, source_lmk_lst, x_c_s_lst, f_s_lst, x_s_lst, r_s_lst, x_s_info_lst, img_rgb_lst, img_crop_256x256_lst, crop_info_lst, lip_delta_before_animation
 
-    def prepare_multiple_portrait(self, source_image_path, ref_img):
-        # Load and preprocess source image
-        img_rgb = load_image_rgb(source_image_path)
-        img_rgb = resize_to_limit(img_rgb, self.config['ref_max_shape'], self.config['ref_shape_n'])
+    def prepare_multiple_portrait(self, source_image_path, ref_img, use_diffusion=False):
+        if use_diffusion:
+            img_rgb = resize_to_limit(source_image_path, self.config['ref_max_shape'], self.config['ref_shape_n'])
+        else:
+            # Load and preprocess source image
+            img_rgb = load_image_rgb(source_image_path)
+            img_rgb = resize_to_limit(img_rgb, self.config['ref_max_shape'], self.config['ref_shape_n'])
         if ref_img is not None:
             ref_img = load_image_rgb(ref_img)
             ref_img = resize_to_limit(ref_img, self.config['ref_max_shape'], self.config['ref_shape_n'])
@@ -351,7 +357,8 @@ class EfficientLivePortrait(PortraitController):
 
         return i_p_lst, i_p_paste_lst, original_fps
 
-    def render(self, video_path_or_id, image_path, source_video_path, ref_img, max_faces, task, audio_from_source):
+    def render(self, video_path_or_id, image_path, source_video_path, ref_img, max_faces, task, audio_from_source,
+               use_diffusion, lcm_steps, prompt, negative_prompt, width, height, seed):
         """
         Video_path_or_id is use for 2 process, please make sure video_id only use for real-time demo
         """
@@ -378,7 +385,12 @@ class EfficientLivePortrait(PortraitController):
             cap.release()
             cv2.destroyAllWindows()
         elif task == 'image':
-            crop_infos = self.prepare_multiple_portrait(source_image_path=image_path, ref_img=ref_img)
+            if use_diffusion:
+                print('Process Img2Img')
+                image = self.diffusion.generate(image_path=image_path, lcm_steps=lcm_steps, prompt=prompt, negative_prompt=negative_prompt, width=width, height=height, seed=seed)
+                crop_infos = self.prepare_multiple_portrait(source_image_path=np.array(image), ref_img=ref_img, use_diffusion=use_diffusion)
+            else:
+                crop_infos = self.prepare_multiple_portrait(source_image_path=image_path, ref_img=ref_img)
             source_motion_dict, source_motion_256 = self.process_multiple_source_motion(
                 video_path_or_id, crop_infos, max_faces, self.cropper, cropping_video=self.cropping_video)
             i_p_lst, i_p_paste_lst, original_fps = self.generate(source_motion_dict)
@@ -400,14 +412,18 @@ class EfficientLivePortrait(PortraitController):
             fps, mask_origins, _, i_d_lst, i_p_paste_lst, _, \
                 n_frames, \
                 input_eye_ratio_lst, input_lip_ratio_lst = self.process_source_motion(img_rgb_lst, video_path_or_id,
-                                                                                      crop_info_lst, self.cropper, automatic_cropping_video=self.cropping_video,)
-            i_p_paste_lst = self.generate_video(i_p_paste_lst, source_frames, source_lmk_lst, n_frames, crop_info_lst, img_rgb_lst,
+                                                                                      crop_info_lst, self.cropper,
+                                                                                      automatic_cropping_video=self.cropping_video, )
+            i_p_paste_lst = self.generate_video(i_p_paste_lst, source_frames, source_lmk_lst, n_frames, crop_info_lst,
+                                                img_rgb_lst,
                                                 mask_origins, i_d_lst, x_s_lst, x_c_s_lst, f_s_lst, r_s_lst,
                                                 x_s_info_lst, input_eye_ratio_lst, input_lip_ratio_lst,
                                                 lip_delta_before_animations)
             self.mkdir('animations')
 
             wfp = osp.join('animations', f'{basename(source_video_path)}--{basename(video_path_or_id)}_vid2vid.mp4')
-            wfp_audio = osp.join('animations', f'{basename(source_video_path)}--{basename(video_path_or_id)}_vid2vid_audio.mp4')
-            images2video(i_p_paste_lst, wfp=wfp, video_path_original=video_path_or_id, source_video_path=source_video_path, wfp_audio=wfp_audio,
+            wfp_audio = osp.join('animations',
+                                 f'{basename(source_video_path)}--{basename(video_path_or_id)}_vid2vid_audio.mp4')
+            images2video(i_p_paste_lst, wfp=wfp, video_path_original=video_path_or_id,
+                         source_video_path=source_video_path, wfp_audio=wfp_audio,
                          fps=fps, add_video_func=self.add_audio_to_video, audio_from_source=audio_from_source)
