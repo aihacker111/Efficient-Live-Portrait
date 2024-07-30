@@ -1,4 +1,4 @@
-from dwpose import DWposeDetector
+from .dwpose import DWposeDetector
 from PIL import Image
 import cv2
 
@@ -9,7 +9,7 @@ class OpenPose:
 
     @staticmethod
     def load_image(image_path):
-        image = Image.open(image_path)
+        image = cv2.imread(image_path)
         return image
 
     def get_pose(self, image_path):
@@ -17,7 +17,7 @@ class OpenPose:
         image = self.load_image(image_path)
         pose_image, _ = pose_detector(image)
         pose_image = pose_image[:, :, ::-1]
-        return pose_image
+        return Image.fromarray(pose_image)
 
 
 if __name__ == '__main__':

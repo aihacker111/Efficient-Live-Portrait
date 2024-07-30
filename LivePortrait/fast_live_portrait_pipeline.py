@@ -7,6 +7,7 @@ import numpy as np
 import os.path as osp
 from tqdm import tqdm
 from LivePortrait.commons import load_image_rgb, resize_to_limit, basename, images2video
+from controlnet_sdxl_lightning import SDXLLightningOpenPose
 from LivePortrait.live_portrait import PortraitController
 
 
@@ -15,6 +16,7 @@ class EfficientLivePortrait(PortraitController):
         super().__init__(use_tensorrt, half, **kwargs)
         self.config = kwargs
         self.cropping_video = cropping_video
+        self.diffusion = SDXLLightningOpenPose()
 
     def prepare_video_portrait(self, source_video_path):
         source_lmk_lst = []
@@ -72,10 +74,13 @@ class EfficientLivePortrait(PortraitController):
         source_n_frames = source_frame_rgb.shape[0]
         return source_n_frames, source_lmk_lst, x_c_s_lst, f_s_lst, x_s_lst, r_s_lst, x_s_info_lst, img_rgb_lst, img_crop_256x256_lst, crop_info_lst, lip_delta_before_animation
 
-    def prepare_multiple_portrait(self, source_image_path, ref_img):
-        # Load and preprocess source image
-        img_rgb = load_image_rgb(source_image_path)
-        img_rgb = resize_to_limit(img_rgb, self.config['ref_max_shape'], self.config['ref_shape_n'])
+    def prepare_multiple_portrait(self, source_image_path, ref_img, use_diffusion=False):
+        if use_diffusion:
+            img_rgb = resize_to_limit(source_image_path, self.config['ref_max_shape'], self.config['ref_shape_n'])
+        else:
+            # Load and preprocess source image
+            img_rgb = load_image_rgb(source_image_path)
+            img_rgb = resize_to_limit(img_rgb, self.config['ref_max_shape'], self.config['ref_shape_n'])
         if ref_img is not None:
             ref_img = load_image_rgb(ref_img)
             ref_img = resize_to_limit(ref_img, self.config['ref_max_shape'], self.config['ref_shape_n'])
@@ -352,7 +357,8 @@ class EfficientLivePortrait(PortraitController):
 
         return i_p_lst, i_p_paste_lst, original_fps
 
-    def render(self, video_path_or_id, image_path, source_video_path, ref_img, max_faces, task, audio_from_source):
+    def render(self, video_path_or_id, image_path, source_video_path, ref_img, max_faces, task, audio_from_source,
+               use_diffusion, lcm_steps, prompt, negative_prompt, width, height, seed):
         """
         Video_path_or_id is use for 2 process, please make sure video_id only use for real-time demo
         """
@@ -379,7 +385,12 @@ class EfficientLivePortrait(PortraitController):
             cap.release()
             cv2.destroyAllWindows()
         elif task == 'image':
-            crop_infos = self.prepare_multiple_portrait(source_image_path=image_path, ref_img=ref_img)
+            if use_diffusion:
+                print('Process Img2Img')
+                image = self.diffusion.generate(image_path=image_path, lcm_steps=lcm_steps, prompt=prompt, negative_prompt=negative_prompt, width=width, height=height, seed=seed)
+                crop_infos = self.prepare_multiple_portrait(source_image_path=np.array(image), ref_img=ref_img, use_diffusion=use_diffusion)
+            else:
+                crop_infos = self.prepare_multiple_portrait(source_image_path=image_path, ref_img=ref_img)
             source_motion_dict, source_motion_256 = self.process_multiple_source_motion(
                 video_path_or_id, crop_infos, max_faces, self.cropper, cropping_video=self.cropping_video)
             i_p_lst, i_p_paste_lst, original_fps = self.generate(source_motion_dict)

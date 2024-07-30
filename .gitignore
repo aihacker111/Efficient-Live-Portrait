@@ -13,6 +13,7 @@ code_test.py
 output_video.mp4
 run_live_portrait_img2img.py
 push_model_hf.py
+test_cfg.py
 spade_generator.onnx
 spade_generator.quant.onnx
 efficient-live-portrait.yaml
